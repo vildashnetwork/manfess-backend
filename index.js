@@ -14,7 +14,7 @@ app.get("/", (req, res) => {
 
 // Example: fetch users from DB
 app.get("/users", (req, res) => {
-  db.query("SELECT * FROM users", (err, results) => {
+  db.query("SELECT * FROM admins", (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
