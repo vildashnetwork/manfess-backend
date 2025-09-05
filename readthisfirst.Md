@@ -98,7 +98,7 @@ Push your branch and make a Pull Request on GitHub for review.
 * git add .
 
 # Commit with a message
-* git commit -m "middle ware"
+* git commit -m "login"
 
 🔹 Push Changes to GitHub
  # Push to the remote 'main' branch

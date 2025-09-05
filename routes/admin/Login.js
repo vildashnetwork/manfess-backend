@@ -1,7 +1,6 @@
 import db from "../../middlewares/db.js";
 import e from "express";
-import jwt from "jsonwebtoken";
-
+import generateToken from "../../middlewares/admintoken.js";
 const router = e.Router();
 
 router.post("/", (req, res) => {
@@ -14,7 +13,9 @@ router.post("/", (req, res) => {
 
       }
       if (results.length > 0) {
-        res.status(200).json({ message: "Login successful", admin: results[0] });
+        const token = generateToken(results[0].id);
+        console.log(token);
+        res.status(200).json({ message: "Login successful", admin: results[0], token });
       } else {
         res.status(401).json({ message: "Invalid credentials" });
       }
