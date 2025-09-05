@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 
-//this credentials will be provided provately
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -14,13 +13,15 @@ const db = mysql.createConnection({
   port: process.env.DB_PORT,
 });
 
-
-db.connect((err) => {
+const connectdb = async()=>{
+ await db.connect((err) => {
   if (err) {
     console.error("❌ Database connection failed:", err.message);
   } else {
     console.log("✅ Connected to MySQL Database");
   }
 });
+}
 
-export default db;
+
+export default connectdb;
