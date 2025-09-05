@@ -3,6 +3,7 @@ import e from "express";
 import generateToken from "../../middlewares/admintoken.js";
 const router = e.Router();
 
+//url: https://manfess-backend.onrender.com/api/adminlogin
 router.post("/", (req, res) => {
   const { username, password } = req.body;
 
