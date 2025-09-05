@@ -1,14 +1,15 @@
 import express from "express";
-import db from '../middlewares/db.js'; 
+import db from '../../middlewares/db.js'; 
 const router = express.Router();
 
-router.get("/users", (req, res) => {
+router.get("/", (req, res) => {
     try{
   db.query("SELECT * FROM admins", (err, results) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
-    res.json(results);
+    res.status(200).json(results);
+    
   })
     }catch(error){
         console.log('====================================');

@@ -1,11 +1,18 @@
 import express from "express";
 import dotenv from "dotenv";
 import db from "./middlewares/db.js";
-import admins from './routes/Admin.js'
+import admins from './routes/admin/FetchAdmin.js';
+import adminlogin from  "./routes/admin/Login.js";
+
+//middlewares
 dotenv.config();
 const app = express();
+app.use(express.urlencoded({ extended: true })); 
+app.use(express.json())
+
 
 app.use('/api/admin',admins)
+app.use('/api/adminlogin', adminlogin)
 app.use(express.json());
 
 
