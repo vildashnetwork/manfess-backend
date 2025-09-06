@@ -12,53 +12,63 @@ router.post('/', async (req, res) => {
     const resultsArray = Array.isArray(data) ? data : [data];
 
     let insertedCount = 0;
-    let skipped = [];
+    let updatedCount = 0;
 
-    // Loop through each record
     for (const item of resultsArray) {
       const { studentname, Class, Subject, Subject_Code, Mark, Grade } = item;
 
-      // Check for duplicates
+      // Check if record exists
       const checkSql = `
-        SELECT COUNT(*) AS count
+        SELECT id 
         FROM mock_results_olevel
         WHERE studentname = ? AND Subject = ?;
       `;
 
-      const [rows] = await new Promise((resolve, reject) => {
+      const rows = await new Promise((resolve, reject) => {
         db.query(checkSql, [studentname, Subject], (err, result) => {
           if (err) reject(err);
           else resolve(result);
         });
       });
 
-      if (rows.count > 0) {
-        // Skip duplicate
-        skipped.push({ studentname, Subject });
-        continue;
-      }
+      if (rows.length > 0) {
+        // Update existing record
+        const updateSql = `
+          UPDATE mock_results_olevel
+          SET Class = ?, Subject_Code = ?, Mark = ?, Grade = ?
+          WHERE studentname = ? AND Subject = ?
+        `;
 
-      // Insert new result
-      const insertSql = `
-        INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `;
-
-      await new Promise((resolve, reject) => {
-        db.query(insertSql, [studentname, Class, Subject, Subject_Code, Mark, Grade], (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
+        await new Promise((resolve, reject) => {
+          db.query(updateSql, [Class, Subject_Code, Mark, Grade, studentname, Subject], (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          });
         });
-      });
 
-      insertedCount++;
+        updatedCount++;
+      } else {
+        // Insert new record
+        const insertSql = `
+          INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+
+        await new Promise((resolve, reject) => {
+          db.query(insertSql, [studentname, Class, Subject, Subject_Code, Mark, Grade], (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          });
+        });
+
+        insertedCount++;
+      }
     }
 
     res.json({
-      message: 'Insert operation completed',
+      message: 'Operation completed',
       insertedCount,
-      skippedCount: skipped.length,
-      skipped
+      updatedCount
     });
 
   } catch (error) {
