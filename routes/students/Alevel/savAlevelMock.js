@@ -1,5 +1,5 @@
 import express from 'express';
-import db from '../../middlewares/db.js';
+import db from '../../../middlewares/db.js';
 
 const router = express.Router();
 
