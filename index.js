@@ -10,6 +10,7 @@ import subjects from "./routes/subjects/fetchsubjects.js";
 import studentsolevel from "./routes/students/fetchall.js";
 import studentsolevelmock from "./routes/students/SavingOlevelMock.js";
 import alevelfetch from "./routes/students/Alevel/Alevelfetch.js";
+import alevelmock from "./routes/students/Alevel/savAlevelMock.js";
 //middlewares
 dotenv.config();
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
 
 //routes
+app.use("/api/students/alevelmock", alevelmock)
 app.use("/api/students/alevel", alevelfetch)
 app.use("/api/students/olevelmock", studentsolevelmock)
 app.use("/api/students", studentsolevel)
