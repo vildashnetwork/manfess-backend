@@ -6,7 +6,7 @@ const router = express.Router()
 //url: https://manfess-backend.onrender.com/api/subjects
 router.get("/", async (req, res)=>{
     try{
-        db.query("SELECT * FROM subjects", (err, results)=>{
+        db.query("SELECT * FROM subjects where Cycle = 'first_cycle'", (err, results)=>{
             if(err){
                 console.log(err)
                 return res.status(500).json({error: "Database query error"})

@@ -14,6 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
 
 //routes
+
 app.use("/api/subjects", subjects)
 app.use("/api/teachers/login", teachersLogin)
 app.use("/api/teachers", teachers)
