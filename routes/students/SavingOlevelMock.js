@@ -11,28 +11,54 @@ router.post('/', async (req, res) => {
     // Normalize to array
     const resultsArray = Array.isArray(data) ? data : [data];
 
-    // Prepare values for bulk insert
-    const values = resultsArray.map(item => [
-      item.studentname,
-      item.Class,
-      item.Subject,
-      item.Subject_Code,
-      item.Mark,
-      item.Grade
-    ]);
+    let insertedCount = 0;
+    let skipped = [];
 
-    const sql = 'INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade) VALUES ?';
+    // Loop through each record
+    for (const item of resultsArray) {
+      const { studentname, Class, Subject, Subject_Code, Mark, Grade } = item;
 
-    db.query(sql, [values], (err, result) => {
-      if (err) {
-        console.error('Error inserting mock results:', err);
-        return res.status(500).json({ error: 'Database error' });
+      // Check for duplicates
+      const checkSql = `
+        SELECT COUNT(*) AS count
+        FROM mock_results_olevel
+        WHERE studentname = ? AND Subject = ?;
+      `;
+
+      const [rows] = await new Promise((resolve, reject) => {
+        db.query(checkSql, [studentname, Subject], (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
+      });
+
+      if (rows.count > 0) {
+        // Skip duplicate
+        skipped.push({ studentname, Subject });
+        continue;
       }
 
-      res.json({
-        message: 'Mock results inserted successfully',
-        insertedCount: result.affectedRows
+      // Insert new result
+      const insertSql = `
+        INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+
+      await new Promise((resolve, reject) => {
+        db.query(insertSql, [studentname, Class, Subject, Subject_Code, Mark, Grade], (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
       });
+
+      insertedCount++;
+    }
+
+    res.json({
+      message: 'Insert operation completed',
+      insertedCount,
+      skippedCount: skipped.length,
+      skipped
     });
 
   } catch (error) {
