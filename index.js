@@ -5,12 +5,15 @@ import admins from './routes/admin/FetchAdmin.js';
 import adminlogin from  "./routes/admin/Login.js";
 import me from "./routes/admin/me.js";
 import teachers from "./routes/teachers/fetchteachers.js";
+import teachersLogin from "./routes/teachers/teachersLogin.js";
 //middlewares
 dotenv.config();
 const app = express();
 app.use(express.urlencoded({ extended: true })); 
 app.use(express.json())
 
+//routes
+app.use("/api/teachers/login", teachersLogin)
 app.use("/api/teachers", teachers)
 app.use('/api/admin/me', me)
 app.use('/api/admin',admins)
