@@ -6,6 +6,7 @@ import adminlogin from  "./routes/admin/Login.js";
 import me from "./routes/admin/me.js";
 import teachers from "./routes/teachers/fetchteachers.js";
 import teachersLogin from "./routes/teachers/teachersLogin.js";
+import subjects from "./routes/subjects/fetchsubjects.js";
 //middlewares
 dotenv.config();
 const app = express();
@@ -13,6 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
 
 //routes
+app.use("/api/subjects", subjects)
 app.use("/api/teachers/login", teachersLogin)
 app.use("/api/teachers", teachers)
 app.use('/api/admin/me', me)
