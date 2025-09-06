@@ -41,7 +41,7 @@ router.get("/students/all", (req, res) => {
       BalanceLeft,
       SchoolYear,
       Department
-    FROM studentsalevel where class = ? AND Department = ?
+    FROM studentsalevel where level = ? AND Department = ?
   `;
 
   db.query(query, [className, department], (err, results) => {
