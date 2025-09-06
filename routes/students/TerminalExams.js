@@ -5,12 +5,13 @@ const router = express.Router();
 
 // https://manfess-backend.onrender.com/api/students/all
 router.get("/students/all", (req, res) => {
-    const { class: className, department } = req.query;
+  const { class: className, department } = req.query;
+
+  // Use COALESCE and convert collations to a common one (utf8mb4_general_ci)
   const query = `
-    SELECT 
-      
-     DISTINCT  localid,
-     id,
+    SELECT DISTINCT
+      localid,
+      id,
       FirstName,
       LastName,
       DOB,
@@ -23,13 +24,10 @@ router.get("/students/all", (req, res) => {
       SchoolYear,
       Department
     FROM students
-
     UNION ALL
-
-    SELECT
-    
-     DISTINCT localid, 
-      Id,
+    SELECT DISTINCT
+      localid,
+      id,
       FirstName,
       LastName,
       DOB,
@@ -41,10 +39,14 @@ router.get("/students/all", (req, res) => {
       BalanceLeft,
       SchoolYear,
       Department
-    FROM studentsalevel where level = ? AND Department = ?
+    FROM studentsalevel
+    WHERE (? IS NULL OR level = ?)
+      AND (? IS NULL OR Department = ?)
   `;
 
-  db.query(query, [className, department], (err, results) => {
+  const params = [className, className, department, department];
+
+  db.query(query, params, (err, results) => {
     if (err) {
       console.error("Error fetching students:", err);
       return res.status(500).json({ error: "Database error" });
@@ -52,6 +54,7 @@ router.get("/students/all", (req, res) => {
     res.json(results);
   });
 });
+
 
 // https://manfess-backend.onrender.com/api/terminalresults
 router.post("/terminalresults", (req, res) => {
