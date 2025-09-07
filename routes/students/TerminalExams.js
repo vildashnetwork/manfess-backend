@@ -8,40 +8,28 @@ router.get("/students/all", (req, res) => {
   const { class: className, department } = req.query;
 
   const query1 = `
-    SELECT 
-      localid, id, FirstName, LastName, DOB, ParentName, FeesComplete,
-      level, AmountPaid, ExpectedAmount, BalanceLeft, SchoolYear, Department
+    SELECT localid, id, FirstName, LastName, DOB, ParentName, FeesComplete,
+           level, AmountPaid, ExpectedAmount, BalanceLeft, SchoolYear, Department
     FROM students
-    WHERE (? IS NULL OR level = ?)
-      AND (? IS NULL OR Department = ?)
+    WHERE (? IS NULL OR level = ?) AND (? IS NULL OR Department = ?)
   `;
 
   const query2 = `
-    SELECT 
-      localid, id, FirstName, LastName, DOB, ParentName, FeesComplete,
-      level, AmountPaid, ExpectedAmount, BalanceLeft, SchoolYear, Department
+    SELECT localid, id, FirstName, LastName, DOB, ParentName, FeesComplete,
+           level, AmountPaid, ExpectedAmount, BalanceLeft, SchoolYear, Department
     FROM studentsalevel
-    WHERE (? IS NULL OR level = ?)
-      AND (? IS NULL OR Department = ?)
+    WHERE (? IS NULL OR level = ?) AND (? IS NULL OR Department = ?)
   `;
 
-  const params = [className || null, className || null, department || null, department || null];
+  db.query(query1, [className || null, className || null, department || null, department || null], (err1, res1) => {
+    if (err1) return res.status(500).json({ error: "DB error: " + err1.message });
 
-  db.query(query1, params, (err1, results1) => {
-    if (err1) {
-      console.error("Error fetching students (students table):", err1);
-      return res.status(500).json({ error: "Database error (students)" });
-    }
+    db.query(query2, [className || null, className || null, department || null, department || null], (err2, res2) => {
+      if (err2) return res.status(500).json({ error: "DB error: " + err2.message });
 
-    db.query(query2, params, (err2, results2) => {
-      if (err2) {
-        console.error("Error fetching students (studentsalevel table):", err2);
-        return res.status(500).json({ error: "Database error (studentsalevel)" });
-      }
-
-      // ✅ Merge results in Node instead of UNION
-      const allStudents = [...results1, ...results2];
-      res.json(allStudents);
+      // merge results in JS instead of UNION
+      const merged = [...res1, ...res2];
+      res.json(merged);
     });
   });
 });
