@@ -21,25 +21,57 @@ router.post("/add", async (req, res) => {
       return res.status(400).json({ error: "Day and Teachers fields are required" });
     }
 
-    const sql = `
-      INSERT INTO teachers_timestable
-      (Day, \`04:30-05:20\`, \`05:20-06:10\`, \`06:10-07:00\`, \`07:00-07-50\`, \`07-50-09-00\`, Teachers)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
+    // Step 1: Check if teacher already has timetable for this day
+    const [existing] = await db.query(
+      "SELECT id FROM teachers_timestable WHERE Day = ? AND Teachers = ?",
+      [Day, Teachers]
+    );
 
-    const [result] = await db.query(sql, [
-      Day, 
-      slot1 || null, 
-      slot2 || null, 
-      slot3 || null, 
-      slot4 || null, 
-      slot5 || null, 
-      Teachers
-    ]);
+    if (existing.length > 0) {
+      // Step 2: Update if exists
+      const sqlUpdate = `
+        UPDATE teachers_timestable 
+        SET \`04:30-05:20\`=?, 
+            \`05:20-06:10\`=?, 
+            \`06:10-07:00\`=?, 
+            \`07:00-07-50\`=?, 
+            \`07-50-09-00\`=? 
+        WHERE Day=? AND Teachers=?;
+      `;
 
-    res.status(201).json({ success: true, id: result.insertId });
+      await db.query(sqlUpdate, [
+        slot1 || null,
+        slot2 || null,
+        slot3 || null,
+        slot4 || null,
+        slot5 || null,
+        Day,
+        Teachers
+      ]);
+
+      return res.status(200).json({ success: true, message: "Timetable updated" });
+    } else {
+      // Step 3: Insert if not exists
+      const sqlInsert = `
+        INSERT INTO teachers_timestable
+        (Day, \`04:30-05:20\`, \`05:20-06:10\`, \`06:10-07:00\`, \`07:00-07-50\`, \`07-50-09-00\`, Teachers)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const [result] = await db.query(sqlInsert, [
+        Day,
+        slot1 || null,
+        slot2 || null,
+        slot3 || null,
+        slot4 || null,
+        slot5 || null,
+        Teachers
+      ]);
+
+      return res.status(201).json({ success: true, message: "Timetable added", id: result.insertId });
+    }
   } catch (err) {
-    console.error("Error inserting timetable:", err);
+    console.error("Error inserting/updating timetable:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
