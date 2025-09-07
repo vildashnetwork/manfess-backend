@@ -15,6 +15,7 @@ import premorkalevel from "./routes/students/Premock/Alevel.js";
 import olevelpremock from "./routes/students/Premock/Olevel.js";
 import terminalresults from "./routes/students/TerminalExams.js";
 import allsubjects from "./routes/subjects/all.js";
+import updateteachers from "./routes/teachers/updateteacher.js"
 //middlewares
 dotenv.config();
 const app = express();
@@ -22,6 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
 
 //routes
+app.use("/api/teachers/updateteacher", updateteachers)
 app.use("/api/subjects/all", allsubjects)
 app.use("/api", terminalresults)
 app.use("/api/students/olevelpremock", olevelpremock)
