@@ -40,7 +40,7 @@ app.use(express.json());
 
 
 
-const PORT = process.env.PORT;
+const PORT = 6500;
 app.listen(PORT, () => {
   console.log(`✅ Server running on port http://localhost:${PORT}`);
 })
