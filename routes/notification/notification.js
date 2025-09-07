@@ -14,7 +14,7 @@ router.get("/", (req, res) => {
   });
 });
 
-// Add a new notification
+// Add a new notification https://manfess-backend.onrender.com/api/notifications/add
 router.post("/add", (req, res) => {
   const { message } = req.body;
 

@@ -17,6 +17,7 @@ import terminalresults from "./routes/students/TerminalExams.js";
 import allsubjects from "./routes/subjects/all.js";
 import updateteachers from "./routes/teachers/updateteacher.js"
 import notification from "./routes/notification/notification.js";
+import teacherstimestable from "./routes/teachers/timestable.js"
 //middlewares
 dotenv.config();
 const app = express();
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json())
 
 //routes
+app.use("/api/teachers/timetable", teacherstimestable)
 app.use("/api/notifications", notification)
 app.use("/api/teachers/updateteacher", updateteachers)
 app.use("/api/subjects/all", allsubjects)
