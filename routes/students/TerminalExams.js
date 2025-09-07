@@ -36,7 +36,7 @@ router.get("/students/all", (req, res) => {
 
 // ✅ Insert or update terminal results
 router.post("/terminalresults", (req, res) => {
-  const { studentname, Class, Department, Subject, Subject_Code, Mark } = req.body;
+  const { studentname, Class, Department, Subject, Subject_Code, Mark , sequence} = req.body;
 
   if (!studentname || !Class || !Department || !Subject || !Subject_Code || !Mark) {
     return res.status(400).json({ error: "All fields are required" });
@@ -44,10 +44,10 @@ router.post("/terminalresults", (req, res) => {
 
   const checkQuery = `
     SELECT id FROM terminalresults 
-    WHERE studentname = ? AND Subject = ?
+    WHERE studentname = ? AND Subject = ? AND sequence = ?
   `;
 
-  db.query(checkQuery, [studentname, Subject], (err, results) => {
+  db.query(checkQuery, [studentname, Subject, sequence], (err, results) => {
     if (err) {
       console.error("Error checking terminal result:", err);
       return res.status(500).json({ error: "Database error" });
@@ -57,11 +57,11 @@ router.post("/terminalresults", (req, res) => {
       const updateQuery = `
         UPDATE terminalresults 
         SET Mark = ?, Class = ?, Department = ?, Subject_Code = ?
-        WHERE studentname = ? AND Subject = ?
+        WHERE studentname = ? AND Subject = ? AND sequence = ?
       `;
       db.query(
         updateQuery,
-        [Mark, Class, Department, Subject_Code, studentname, Subject],
+        [Mark, Class, Department, Subject_Code, studentname, Subject, sequence],
         (err2) => {
           if (err2) {
             console.error("Error updating terminal result:", err2);
@@ -72,12 +72,12 @@ router.post("/terminalresults", (req, res) => {
       );
     } else {
       const insertQuery = `
-        INSERT INTO terminalresults (studentname, Class, Department, Subject, Subject_Code, Mark)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO terminalresults (studentname, Class, Department, Subject, Subject_Code, Mark, sequence)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
       db.query(
         insertQuery,
-        [studentname, Class, Department, Subject, Subject_Code, Mark],
+        [studentname, Class, Department, Subject, Subject_Code, Mark, sequence],
         (err3, result) => {
           if (err3) {
             console.error("Error inserting terminal result:", err3);
