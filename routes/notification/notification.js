@@ -1,59 +1,41 @@
-// server.js
-import express from "express";
-import http from "http";
-import { Server } from "socket.io";
-import bodyParser from "body-parser";
-import db from '../../middlewares/db.js'
+import db from "../../middlewares/db.js"
+import express from "express"
 
+const router = express.Router()
 
-const router = express.Router();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+//url: https://manfess-backend.onrender.com/api/notifications
+router.get("/", async (req, res)=>{
+    try{
+        db.query("SELECT * FROM notifications ", (err, results)=>{
+            if(err){
+                console.log(err)
+                return res.status(500).json({error: "Database query error"})
+            }
+            res.status(200).json(results)
+        })
 
-router.use(bodyParser.json());
+    }
+    catch(error){
+        console.log(error)
+    }
+})
 
+//url: https://manfess-backend.onrender.com/api/notifications/add
+router.post("/add", async (req, res)=>{
+    try{
+        const { message } = req.body;
+        db.query("INSERT INTO notifications ( message) VALUES (?, ?)", [message], (err, results)=>{
+            if(err){
+                console.log(err)
+                return res.status(500).json({error: "Database query error"})
+            }
+            res.status(201).json({id: results.insertId, title, message})
+        })
 
-// Socket.IO connection
-io.on("connection", (socket) => {
-  console.log("Mobile client connected:", socket.id);
-});
+    }
+    catch(error){
+        console.log(error)
+    }
+})
 
-// ----------------------------
-// Admin route: push notification
-// ----------------------------
-router.post("/admin/notifications", async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: "Message is required" });
-
-    // Save message to DB
-    const [result] = await db.query("INSERT INTO notifications (message) VALUES (?)", [message]);
-
-    // Emit to all connected clients
-    const notification = {
-      id: result.insertId,
-      message,
-      createdAt: new Date()
-    };
-    io.emit("notification", notification);
-
-    res.json({ success: true, notification });
-  } catch (err) {
-    console.error("Error pushing notification:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ----------------------------
-// Get all notifications (optional)
-// ----------------------------
-router.get("/notifications", async (req, res) => {
-  try {
-    const [rows] = await db.query("SELECT * FROM notifications ORDER BY createdAt DESC");
-    res.json(rows);
-  } catch (err) {
-    console.error("Error fetching notifications:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
+export default router
