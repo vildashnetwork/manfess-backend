@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Get all notifications
 router.get("/", (req, res) => {
-  db.query("SELECT * FROM notifications ORDER BY createdAt DESC", (err, results) => {
+  db.query("SELECT * FROM notifications ORDER BY Date DESC", (err, results) => {
     if (err) {
       console.log(err);
       return res.status(500).json({ error: "Database query error" });
@@ -22,7 +22,7 @@ router.post("/add", (req, res) => {
 
   // Only one placeholder for one value
   db.query(
-    "INSERT INTO notifications (message, createdAt) VALUES (?, NOW())",
+    "INSERT INTO notifications (message, Date) VALUES (?, NOW())",
     [message],
     (err, results) => {
       if (err) {
