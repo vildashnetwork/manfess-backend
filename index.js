@@ -47,15 +47,13 @@
 //   console.log(`✅ Server running on port http://localhost:${PORT}`);
 // })
 
-
-// server.js
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import db from "./middlewares/db.js";
 
-// Import routes
+// Import your existing routes
 import admins from './routes/admin/FetchAdmin.js';
 import adminlogin from "./routes/admin/Login.js";
 import me from "./routes/admin/me.js";
@@ -78,7 +76,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 // Middlewares
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // ----------------------------
@@ -93,7 +91,7 @@ io.on("connection", (socket) => {
 // ----------------------------
 const notificationRouter = express.Router();
 
-// Push notification from admin
+// Admin: push notification
 notificationRouter.post("/admin/notifications", (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "Message is required" });
