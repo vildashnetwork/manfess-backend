@@ -1,41 +1,37 @@
-import db from "../../middlewares/db.js"
-import express from "express"
+import db from "../../middlewares/db.js";
+import express from "express";
 
-const router = express.Router()
+const router = express.Router();
 
-//url: https://manfess-backend.onrender.com/api/notifications
-router.get("/", async (req, res)=>{
-    try{
-        db.query("SELECT * FROM notifications ", (err, results)=>{
-            if(err){
-                console.log(err)
-                return res.status(500).json({error: "Database query error"})
-            }
-            res.status(200).json(results)
-        })
-
+// Get all notifications
+router.get("/", (req, res) => {
+  db.query("SELECT * FROM notifications ORDER BY createdAt DESC", (err, results) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ error: "Database query error" });
     }
-    catch(error){
-        console.log(error)
-    }
-})
+    res.status(200).json(results);
+  });
+});
 
-//url: https://manfess-backend.onrender.com/api/notifications/add
-router.post("/add", async (req, res)=>{
-    try{
-        const { message } = req.body;
-        db.query("INSERT INTO notifications ( message) VALUES (?, ?)", [message], (err, results)=>{
-            if(err){
-                console.log(err)
-                return res.status(500).json({error: "Database query error"})
-            }
-            res.status(201).json({id: results.insertId, title, message})
-        })
+// Add a new notification
+router.post("/add", (req, res) => {
+  const { message } = req.body;
 
-    }
-    catch(error){
-        console.log(error)
-    }
-})
+  if (!message) return res.status(400).json({ error: "Message is required" });
 
-export default router
+  // Only one placeholder for one value
+  db.query(
+    "INSERT INTO notifications (message, createdAt) VALUES (?, NOW())",
+    [message],
+    (err, results) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: "Database query error" });
+      }
+      res.status(201).json({ id: results.insertId, message, createdAt: new Date() });
+    }
+  );
+});
+
+export default router;
