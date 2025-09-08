@@ -25,35 +25,28 @@
 
 
 
-
-
-
-
-import protect from "../../middlewares/meauth.js";
 import express from "express";
 import db from "../../middlewares/db.js";
+import protect from "../../middlewares/meauth.js";
 
 const router = express.Router();
 
-// url: https://manfess-backend.onrender.com/api/admin/me
-router.get("/", protect, (req, res) => {
+// GET logged-in admin profile
+// url: /api/admin/me
+router.get("/", protect, async (req, res) => {
   try {
-    db.query("SELECT * FROM admins WHERE id = ?", [req.admin], (err, results) => {
-      if (err) {
-        console.error("Database error:", err);
-        return res.status(500).json({ error: err.message });
-      }
+    const [rows] = await db.query("SELECT * FROM admins WHERE id = ?", [req.admin]);
 
-      if (!results.length) {
-        return res.status(404).json({ message: "Admin not found" });
-      }
+    if (!rows.length) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
 
-      res.status(200).json(results[0]);
-    });
+    return res.status(200).json(rows[0]);
   } catch (error) {
-    console.error("Server error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Database query error:", error.message);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
 export default router;
+

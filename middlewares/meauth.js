@@ -29,29 +29,30 @@
 
 
 
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
 
+const protect = (req, res, next) => {
+  let token;
 
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+      // attach admin ID to request
+      req.admin = decoded.userId;
 
-import protect from "../../middlewares/meauth.js";
-
-import express from "express";
-import db from '../../middlewares/db.js'; 
-const router = express.Router();
-//url: https://manfess-backend.onrender.com/api/admin/me
-router.get("/",protect, (req, res) => {
-    try{
-    db.query("SELECT * FROM admins WHERE id = ?", [req.admin], (err, results) => {
-    if (err) {
-        return res.status(500).json({ error: err.message });
+      return next(); // 🚀 must call next or request hangs
+    } catch (error) {
+      console.error("JWT verification error:", error.message);
+      return res.status(401).json({ message: "Not authorized, token failed" });
     }
-    res.status(200).json(results[0]);
-})
-    }catch(error){
-        console.log('====================================');
-        console.log(error);
-        console.log('====================================');
-    }
-});
+  }
 
-export default router;
+  // if no token
+  return res.status(401).json({ message: "Not authorized, no token" });
+};
+
+export default protect;
