@@ -234,6 +234,6 @@ router.post("/terminalresults", async (req, res) => {
   }
 });
 
-router.get("/firstsequence", async())
+// router.get("/firstsequence", async())
 
 export default router;
