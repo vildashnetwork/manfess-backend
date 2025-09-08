@@ -1,3 +1,75 @@
+// import express from 'express';
+// import db from '../../middlewares/db.js';
+
+// const router = express.Router();
+
+// // url: https://manfess-backend.onrender.com/api/students/olevelmock
+// router.post('/', async (req, res) => {
+//   try {
+//     const data = req.body; // Accepts an object or an array of objects
+
+//     // Normalize to array
+//     const resultsArray = Array.isArray(data) ? data : [data];
+
+//     let insertedCount = 0;
+//     let updatedCount = 0;
+
+//     for (const item of resultsArray) {
+//       const { studentname, Class, Subject, Subject_Code, Mark, Grade } = item;
+
+//       // Check if record exists
+//       const [rows] = await db
+//         .promise()
+//         .query(
+//           `SELECT id FROM mock_results_olevel WHERE studentname = ? AND Subject = ?`,
+//           [studentname, Subject]
+//         );
+
+//       if (rows.length > 0) {
+//         // Update existing record
+//         await db
+//           .promise()
+//           .query(
+//             `UPDATE mock_results_olevel 
+//              SET Class = ?, Subject_Code = ?, Mark = ?, Grade = ? 
+//              WHERE studentname = ? AND Subject = ?`,
+//             [Class, Subject_Code, Mark, Grade, studentname, Subject]
+//           );
+//         updatedCount++;
+//       } else {
+//         // Insert new record
+//         await db
+//           .promise()
+//           .query(
+//             `INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade) 
+//              VALUES (?, ?, ?, ?, ?, ?)`,
+//             [studentname, Class, Subject, Subject_Code, Mark, Grade]
+//           );
+//         insertedCount++;
+//       }
+//     }
+
+//     res.json({
+//       message: 'Operation completed',
+//       insertedCount,
+//       updatedCount
+//     });
+//   } catch (error) {
+//     console.error('Server error:', error);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
+
+// export default router;
+
+
+
+
+
+
+
+
+
 import express from 'express';
 import db from '../../middlewares/db.js';
 
@@ -18,44 +90,38 @@ router.post('/', async (req, res) => {
       const { studentname, Class, Subject, Subject_Code, Mark, Grade } = item;
 
       // Check if record exists
-      const [rows] = await db
-        .promise()
-        .query(
-          `SELECT id FROM mock_results_olevel WHERE studentname = ? AND Subject = ?`,
-          [studentname, Subject]
-        );
+      const [rows] = await db.query(
+        `SELECT id FROM mock_results_olevel WHERE studentname = ? AND Subject = ?`,
+        [studentname, Subject]
+      );
 
       if (rows.length > 0) {
         // Update existing record
-        await db
-          .promise()
-          .query(
-            `UPDATE mock_results_olevel 
-             SET Class = ?, Subject_Code = ?, Mark = ?, Grade = ? 
-             WHERE studentname = ? AND Subject = ?`,
-            [Class, Subject_Code, Mark, Grade, studentname, Subject]
-          );
+        await db.query(
+          `UPDATE mock_results_olevel 
+           SET Class = ?, Subject_Code = ?, Mark = ?, Grade = ? 
+           WHERE studentname = ? AND Subject = ?`,
+          [Class, Subject_Code, Mark, Grade, studentname, Subject]
+        );
         updatedCount++;
       } else {
         // Insert new record
-        await db
-          .promise()
-          .query(
-            `INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [studentname, Class, Subject, Subject_Code, Mark, Grade]
-          );
+        await db.query(
+          `INSERT INTO mock_results_olevel (studentname, Class, Subject, Subject_Code, Mark, Grade) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [studentname, Class, Subject, Subject_Code, Mark, Grade]
+        );
         insertedCount++;
       }
     }
 
-    res.json({
+    res.status(200).json({
       message: 'Operation completed',
       insertedCount,
       updatedCount
     });
   } catch (error) {
-    console.error('Server error:', error);
+    console.error('Server error:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

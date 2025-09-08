@@ -1,28 +1,70 @@
-import e from "express";
-import db from "../../middlewares/db.js";
-const router = e.Router();
+// import e from "express";
+// import db from "../../middlewares/db.js";
+// const router = e.Router();
 
+// // url: https://manfess-backend.onrender.com/api/students
+// router.get("/", async (req, res) => {
+//   const q = "SELECT DISTINCT localid, id, FirstName, LastName, level, Department FROM students WHERE level= 'Level 5'";
+//   try {
+//     const [data] = await db.query(q);
+//     return res.status(200).json(data);
+//   } catch (err) {
+//     console.error("Database query error:", err.message);
+//     return res.status(500).json({ error: "Database query error" });
+//   }
+// });
+
+// // url: https://manfess-backend.onrender.com/api/students/all
+// router.get("/all", async (req, res) => {
+//   const q = "SELECT DISTINCT level FROM students";
+//   try {
+//     const [data] = await db.query(q);
+//     return res.status(200).json(data);
+//   } catch (err) {
+//     console.error("Database query error:", err.message);
+//     return res.status(500).json({ error: "Database query error" });
+//   }
+// });
+
+// export default router;
+
+
+
+
+
+
+import express from "express";
+import db from "../../middlewares/db.js";
+
+const router = express.Router();
+
+// ✅ Fetch Level 5 students
 // url: https://manfess-backend.onrender.com/api/students
 router.get("/", async (req, res) => {
-  const q = "SELECT DISTINCT localid, id, FirstName, LastName, level, Department FROM students WHERE level= 'Level 5'";
+  const query = `
+    SELECT DISTINCT localid, id, FirstName, LastName, level, Department
+    FROM students
+    WHERE level = 'Level 5'
+  `;
   try {
-    const [data] = await db.query(q);
-    return res.status(200).json(data);
+    const [data] = await db.query(query);
+    res.status(200).json(data);
   } catch (err) {
     console.error("Database query error:", err.message);
-    return res.status(500).json({ error: "Database query error" });
+    res.status(500).json({ error: "Database query error" });
   }
 });
 
+// ✅ Fetch all distinct student levels
 // url: https://manfess-backend.onrender.com/api/students/all
 router.get("/all", async (req, res) => {
-  const q = "SELECT DISTINCT level FROM students";
+  const query = `SELECT DISTINCT level FROM students`;
   try {
-    const [data] = await db.query(q);
-    return res.status(200).json(data);
+    const [data] = await db.query(query);
+    res.status(200).json(data);
   } catch (err) {
     console.error("Database query error:", err.message);
-    return res.status(500).json({ error: "Database query error" });
+    res.status(500).json({ error: "Database query error" });
   }
 });
 
