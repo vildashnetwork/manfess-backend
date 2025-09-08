@@ -120,5 +120,15 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+//https://manfess-backend.onrender.com/api/students/olevelpremock/all
+router.get("/all", async (req, res) => {
+  try {
+    const [rows] = await db.query(`SELECT * FROM premock_results_olevel`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 export default router;
