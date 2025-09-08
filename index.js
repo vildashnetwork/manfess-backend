@@ -18,12 +18,13 @@ import allsubjects from "./routes/subjects/all.js";
 import updateteachers from "./routes/teachers/updateteacher.js"
 import notification from "./routes/notification/notification.js";
 import teacherstimestable from "./routes/teachers/timestable.js"
+import cors from "cors"
 //middlewares
 dotenv.config();
 const app = express();
 app.use(express.urlencoded({ extended: true })); 
 app.use(express.json())
-
+app.use(cors());
 //routes
 app.use("/api/teachers/timetable", teacherstimestable)
 app.use("/api/notifications", notification)
