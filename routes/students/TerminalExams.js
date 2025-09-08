@@ -234,6 +234,59 @@ router.post("/terminalresults", async (req, res) => {
   }
 });
 
-// router.get("/firstsequence", async())
+router.get("/firstsequence", async(req,res)=>{
+  try {
+    const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'First Sequence'`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+})
+router.get("/secondsequence", async(req,res)=>{
+  try {
+    const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'Second Sequence'`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+})
+router.get("/thirdsequence", async(req,res)=>{
+  try {
+    const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'Third Sequence'`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+})
+router.get("/fourthsequence", async(req,res)=>{
+  try {
+    const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'Fourth Sequence'`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+})
+router.get("/fifthsequence", async(req,res)=>{
+  try {
+    const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'Fifth Sequence'`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+})
+router.get("/sixthsequence", async(req,res)=>{
+  try {
+    const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'Sixth Sequence'`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+})
 
 export default router;
