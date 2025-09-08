@@ -1,6 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import db from "./middlewares/db.js";
+
+// Routes imports
 import admins from './routes/admin/FetchAdmin.js';
 import adminlogin from  "./routes/admin/Login.js";
 import me from "./routes/admin/me.js";
@@ -18,19 +21,19 @@ import allsubjects from "./routes/subjects/all.js";
 import updateteachers from "./routes/teachers/updateteacher.js"
 import notification from "./routes/notification/notification.js";
 import teacherstimestable from "./routes/teachers/timestable.js"
-import cors from "cors"
-//middlewares
+
 dotenv.config();
+
 const app = express();
-app.use(express.urlencoded({ extended: true })); 
-app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(cors());
-//routes
+
+// Routes
 app.use("/api/teachers/timetable", teacherstimestable)
 app.use("/api/notifications", notification)
 app.use("/api/teachers/updateteacher", updateteachers)
 app.use("/api/subjects/all", allsubjects)
-app.use("/api", terminalresults)
 app.use("/api/students/olevelpremock", olevelpremock)
 app.use("/api/students/alevelpremock", premorkalevel)
 app.use("/api/students/alevelmock", alevelmock)
@@ -40,14 +43,21 @@ app.use("/api/students", studentsolevel)
 app.use("/api/subjects", subjects)
 app.use("/api/teachers/login", teachersLogin)
 app.use("/api/teachers", teachers)
-app.use('/api/admin/me', me)
-app.use('/api/admin',admins)
-app.use('/api/adminlogin', adminlogin)
-app.use(express.json());
+app.use("/api/admin/me", me)
+app.use("/api/admin", admins)
+app.use("/api/adminlogin", adminlogin)
+app.use("/api", terminalresults)
 
+// Health check
+app.get("/api/health", (req, res) => res.json({ status: "Server is running ✅" }));
 
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
 
-const PORT = 6500;
+const PORT = process.env.PORT || 6500;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running on port http://localhost:${PORT}`);
-})
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
