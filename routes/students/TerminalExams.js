@@ -156,7 +156,7 @@ import db from '../../middlewares/db.js';
 const router = express.Router();
 
 // ✅ Fetch students (from both tables)
-router.get("/students/all", async (req, res) => {
+router.get("/students/all/students", async (req, res) => {
   try {
     const { class: className, department } = req.query;
 
@@ -233,5 +233,7 @@ router.post("/terminalresults", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+router.get("/firstsequence", async())
 
 export default router;
