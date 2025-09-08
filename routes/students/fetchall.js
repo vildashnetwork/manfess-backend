@@ -3,23 +3,27 @@ import db from "../../middlewares/db.js";
 const router = e.Router();
 
 // url: https://manfess-backend.onrender.com/api/students
-router.get("/", (req, res) => {
-  const q = "SELECT DISTINCT localid, id, FirstName, LastName, level, Department FROM students where level= 'Level 5'";
-  db.query(q, (err, data) => {
-    if (err) return res.status(500).json(err);
+router.get("/", async (req, res) => {
+  const q = "SELECT DISTINCT localid, id, FirstName, LastName, level, Department FROM students WHERE level= 'Level 5'";
+  try {
+    const [data] = await db.query(q);
     return res.status(200).json(data);
-  });
+  } catch (err) {
+    console.error("Database query error:", err.message);
+    return res.status(500).json({ error: "Database query error" });
+  }
 });
 
-
 // url: https://manfess-backend.onrender.com/api/students/all
-
-router.get("/all", (req, res) => {
+router.get("/all", async (req, res) => {
   const q = "SELECT DISTINCT level FROM students";
-  db.query(q, (err, data) => {
-    if (err) return res.status(500).json(err);
+  try {
+    const [data] = await db.query(q);
     return res.status(200).json(data);
-  });
+  } catch (err) {
+    console.error("Database query error:", err.message);
+    return res.status(500).json({ error: "Database query error" });
+  }
 });
 
 export default router;
