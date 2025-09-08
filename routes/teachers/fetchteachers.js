@@ -5,14 +5,10 @@ const router = express.Router();
 
 //url: https://manfess-backend.onrender.com/api/teachers
 router.get('/', async (req, res) => {
+    const query = 'SELECT * FROM teachers';
     try {
-        db.query('SELECT * FROM teachers', (err, results) => {
-            if (err) {
-                console.error('Database query error:', err);
-                return res.status(500).json({ error: 'Database query error' });
-            }
-            res.status(200).json(results);
-        });
+        const [rows] = await db.query(query);
+        res.status(200).json(rows);
     } catch (error) {
         console.error('Error fetching teachers:', error);
         res.status(500).json({ error: 'Internal Server Error' });
