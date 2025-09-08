@@ -126,5 +126,15 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+//https://manfess-backend.onrender.com/api/students/alevelmock/all
+router.get("/all", async (req, res) => {
+  try {
+    const [rows] = await db.query(`SELECT * FROM mock_results_alevel`);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 export default router;
