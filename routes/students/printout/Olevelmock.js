@@ -374,7 +374,7 @@ router.get("/print-slips", async (req, res) => {
     });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=all-students-slips.pdf");
+    res.setHeader("Content-Disposition", "inline; filename=MANFESS_OLEVEL_SLIP_2025/2026.pdf");
     doc.pipe(res);
 
     doc.addPage();
