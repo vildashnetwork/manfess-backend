@@ -24,6 +24,7 @@ import teacherstimestable from "./routes/teachers/timestable.js"
 import printolevelmock from "./routes/students//printout/Olevelmock.js";
 import printpremockolevel from "./routes/students/printout/premockolevel.js";
 import printmockalevel from "./routes/students/printout/mockalevel.js"
+import printpremockalevel from "./routes/students/printout/premockalevel.js";
 dotenv.config();
 
 const app = express();
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
+app.use("/api/students/print/olevelmock", printolevelmock)
 app.use("/api/students/print/mockalevel", printmockalevel)
 app.use("/api/students/print/premockolevel", printpremockolevel)
 app.use("/api/students/print/olevelmock", printolevelmock)
