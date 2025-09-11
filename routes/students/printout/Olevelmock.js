@@ -1004,12 +1004,14 @@
 
 
 import express from "express";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import db from "../../../middlewares/db.js";
 import fs from "fs";
 import path from "path";
 
 const router = express.Router();
+puppeteer.use(StealthPlugin());
 
 const safeString = (val) => (val === null || val === undefined ? "" : String(val).trim());
 
@@ -1129,9 +1131,12 @@ router.get("/", async (req, res) => {
     </html>
     `;
 
-    const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 0 }); // safer wait
     const pdfBuffer = await page.pdf({
       format: "A4",
       landscape: true,
@@ -1147,104 +1152,6 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error("Puppeteer PDF error:", err);
     res.status(500).json({ ok: false, message: err.message });
-  }
-});
-
-// Route: Individual student slips
-router.get("/print-slips", async (req, res) => {
-  try {
-    const [students] = await db.query("SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname");
-    if (!students.length) return res.status(404).send("No students found.");
-
-    const [allResults] = await db.query("SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject");
-
-    const resultsByStudent = {};
-    allResults.forEach(r => {
-      if (!resultsByStudent[r.studentname]) resultsByStudent[r.studentname] = [];
-      resultsByStudent[r.studentname].push(r);
-    });
-
-    const slipsHtml = students.map(student => {
-      const subjects = resultsByStudent[student.studentname] || [];
-      const passedCount = subjects.filter(s => ["A","B","C","D"].includes(s.Grade.toUpperCase())).length;
-
-      return `
-        <div class="slip">
-          <div class="header">
-            <img src="${logoBase64}" alt="School Logo" class="logo">
-            <h1>MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS) - STUDENT RESULT SLIP</h1>
-          </div>
-          <div class="student-info">
-            <p><b>Student Name:</b> ${student.studentname}</p>
-            <p><b>Class:</b> ${student.Class}</p>
-            <p><b>Passed Subjects:</b> <span style="color:${passedCount<4 ? 'red' : 'green'}">${passedCount}</span> OUT OF ${subjects.length}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>Code</th>
-                <th>Mark</th>
-                <th>Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${subjects.map(s => `
-                <tr>
-                  <td>${s.Subject}</td>
-                  <td>${s.Subject_Code}</td>
-                  <td>${s.Mark}</td>
-                  <td>${s.Grade}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-          <div class="footer"><p>Issued by MANFESS</p></div>
-        </div>
-        <div class="page-break"></div>
-      `;
-    }).join("");
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>All Student Slips</title>
-        <style>
-          body { font-family: 'Times New Roman', serif; margin: 30px; }
-          .slip { border: 2px solid #000; padding: 20px; margin-bottom: 30px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .logo { height: 100px; margin-bottom: 10px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-          th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-          th { background: #005566; color: #fff; }
-          .page-break { page-break-after: always; }
-        </style>
-      </head>
-      <body>
-        ${slipsHtml}
-      </body>
-      </html>
-    `;
-
-    const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox","--disable-setuid-sandbox"] });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" }
-    });
-    await browser.close();
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=all-students-slips.pdf");
-    res.send(pdfBuffer);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error generating slips");
   }
 });
 
