@@ -300,7 +300,7 @@ router.get("/", async (req, res) => {
             const g = (results[student] && results[student][subj]) ? String(results[student][subj]).toUpperCase() : "";
             return PASSING_GRADES.has(g) ? c + 1 : c;
           }, 0);
-          const passedColor = passedCount < 4 ? "red" : "green";
+          const passedColor = passedCount < 2 ? "red" : "green";
           doc.save();
           doc.fillColor(passedColor).font("Times-Bold");
           drawTextFit(doc, String(passedCount), x + 2, yTop + 4, w - 4, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
@@ -413,7 +413,7 @@ router.get("/print-slips", async (req, res) => {
       doc.font("Times-Roman").text(` ${studentClass}`, { continued: false });
 
       const passedCount = subjects.filter(s => PASSING_GRADES.has(String(s.Grade).toUpperCase())).length;
-      const passedColor = passedCount < 4 ? "red" : "green";
+      const passedColor = passedCount < 2 ? "red" : "green";
       doc.font("Times-Bold").fillColor(passedColor).text(`Subjects Passed: ${passedCount} / ${subjects.length}`, startX + (usableWidth * 2) / 3 + 8, doc.y - 10, { continued: false });
       doc.restore();
 
