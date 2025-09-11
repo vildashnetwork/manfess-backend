@@ -174,7 +174,7 @@ router.get("/", async (req, res) => {
 
     // stream
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=mock_results.pdf");
+    res.setHeader("Content-Disposition", "inline; filename=manfess_olevel_mock_results.pdf");
     doc.pipe(res);
 
     doc.addPage();
