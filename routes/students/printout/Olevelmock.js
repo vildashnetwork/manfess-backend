@@ -1003,25 +1003,23 @@
 
 
 
+
+
+
+
+
+
 import express from "express";
-import puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
-import db from "../../../middlewares/db.js";
+import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
+import db from "../../../middlewares/db.js";
 
 const router = express.Router();
-puppeteer.use(StealthPlugin());
 
-const safeString = (val) => (val === null || val === undefined ? "" : String(val).trim());
-
-// Load logo
 const logoPath = path.join(process.cwd(), "public", "logo.png");
-const logoBase64 = fs.existsSync(logoPath)
-  ? `data:image/png;base64,${fs.readFileSync(logoPath, { encoding: "base64" })}`
-  : "";
+const logoExists = fs.existsSync(logoPath);
 
-// Route: General O'Level PDF table
 router.get("/", async (req, res) => {
   try {
     const sequence = req.query.sequence || null;
@@ -1035,9 +1033,7 @@ router.get("/", async (req, res) => {
     const params = sequence ? [sequence] : [];
     const [rows] = await db.query(sql, params);
 
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ ok: false, message: "No results found." });
-    }
+    if (!rows.length) return res.status(404).send("No results found.");
 
     const students = [];
     const subjects = [];
@@ -1055,104 +1051,153 @@ router.get("/", async (req, res) => {
       results[student][subject] = grade;
     });
 
-    const tableHead = `
-      <tr>
-        <th>STUDENTS</th>
-        ${subjects.map(s => `<th>${s}</th>`).join("")}
-        <th>Passed Subjects</th>
-      </tr>
-    `;
+    const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 40 });
+    let filename = "mock_results.pdf";
+    filename = encodeURIComponent(filename);
 
-    const tableBody = students.map(student => {
+    res.setHeader("Content-disposition", "inline; filename=" + filename);
+    res.setHeader("Content-type", "application/pdf");
+
+    doc.pipe(res);
+
+    // HEADER
+    if (logoExists) doc.image(logoPath, 50, 20, { width: 80 });
+    doc.font("Times-Bold").fontSize(20).fillColor("#005566").text("MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)", 150, 30, { align: "center" });
+    if (sequence) doc.fontSize(12).fillColor("#333").text(`Sequence: ${sequence}`, { align: "right" });
+
+    doc.moveDown();
+    doc.fontSize(14).fillColor("black").text("GENERAL MOCK O'LEVEL RESULTS", { align: "center" });
+    doc.moveDown(1);
+
+    // TABLE HEADERS
+    const startX = 50;
+    const startY = 120;
+    const tableTop = startY;
+    const rowHeight = 25;
+
+    doc.fontSize(10).fillColor("black");
+    doc.text("STUDENTS", startX, tableTop, { width: 100, align: "center" });
+
+    let currentX = startX + 100;
+    subjects.forEach(subj => {
+      doc.text(subj, currentX, tableTop, { width: 80, align: "center" });
+      currentX += 80;
+    });
+
+    doc.text("Passed Subjects", currentX, tableTop, { width: 100, align: "center" });
+
+    // DRAW HEADER LINE
+    doc.moveTo(startX, tableTop + rowHeight - 5).lineTo(currentX + 100, tableTop + rowHeight - 5).stroke();
+
+    // TABLE ROWS
+    let y = tableTop + rowHeight;
+    students.forEach(student => {
       const passedCount = subjects.reduce((count, subj) => {
         const grade = results[student][subj] || "";
-        return ["A", "B", "C", "D"].includes(grade.toUpperCase()) ? count + 1 : count;
+        return ["A", "B", "C"].includes(grade.toUpperCase()) ? count + 1 : count;
       }, 0);
 
-      return `
-        <tr>
-          <td class="student">${student}</td>
-          ${subjects.map(subj => {
-            const grade = results[student][subj] || "";
-            const isPass = ["A", "B", "C", "D"].includes(grade.toUpperCase());
-            return `<td class="${isPass ? "pass" : "fail"}">${grade}</td>`;
-          }).join("")}
-          <td class="passed-count">${passedCount}</td>
-        </tr>
-      `;
-    }).join("");
+      doc.fillColor("black").text(student, startX, y, { width: 100, align: "left" });
 
-    const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <title>GENERAL MOCK O'LEVEL RESULTS</title>
-      <style>
-        body { font-family: "Times New Roman", serif; margin: 10px; }
-        .header { width: 100%; margin-bottom: 20px; border-bottom: 3px solid #005566; }
-        .top-banner { background: #005566; color: #fff; padding: 5px 10px; text-align: center; font-weight: bold; font-size: 12px; }
-        .header-content { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-        .logo { max-height: 80px; }
-        .school-name { text-align: center; flex: 1; font-size: 20px; font-weight: bold; color: #005566; text-transform: uppercase; }
-        .sequence-info { text-align: right; font-size: 12px; color: #333; }
-        .school-details { margin-top: 10px; border: 1px solid #005566; padding: 8px; font-size: 10px; line-height: 1.4; border-radius: 5px; background: #f0f8ff; }
-        h1 { text-align: center; margin: 15px 0; text-transform: uppercase; font-size: 16px; color: #005566; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th, td { border: 1px solid #000; padding: 5px; text-align: center; }
-        th { background: #f4f4f4; }
-        .student { text-align: left; font-weight: bold; }
-        .pass { color: green; font-weight: bold; }
-        .fail { color: red; font-weight: bold; }
-        .passed-count { font-weight: bold; color: blue; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="top-banner"> MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS) - GENERAL MOCK O'LEVEL RESULTS</div>
-        <div class="header-content">
-          <img src="${logoBase64}" class="logo" alt="School Logo">
-          <div class="school-name"> MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)</div>
-          <div class="sequence-info">${sequence ? sequence : ""}</div>
-        </div>
-        <div class="school-details">
-          LOCATED AT 200 METERS FROM RAIL OPPOSITE ROYAL CITY, RAIL - BONABERI – DOUALA - CAMEROON.<br>
-          Tel: 682 55 35 03 / 673 037 555 / 677 517 606 <br>
-          AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023 <br>
-          AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024
-        </div>
-      </div>
-      <h1>GENERAL MOCK O'LEVEL RESULTS ${sequence ? "- " + sequence : ""}</h1>
-      <table>
-        <thead>${tableHead}</thead>
-        <tbody>${tableBody}</tbody>
-      </table>
-    </body>
-    </html>
-    `;
+      currentX = startX + 100;
+      subjects.forEach(subj => {
+        const grade = results[student][subj] || "";
+        const isPass = ["A", "B", "C"].includes(grade.toUpperCase());
+        doc.fillColor(isPass ? "green" : "red").text(grade, currentX, y, { width: 80, align: "center" });
+        currentX += 80;
+      });
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      doc.fillColor(passedCount >= 4 ? "green" : "red").text(passedCount, currentX, y, { width: 100, align: "center" });
+
+      y += rowHeight;
+
+      // PAGE BREAK
+      if (y > doc.page.height - 50) {
+        doc.addPage({ size: "A4", layout: "landscape", margin: 40 });
+        y = 50;
+      }
     });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 0 }); // safer wait
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      landscape: true,
-      printBackground: true,
-      margin: { top: "15mm", bottom: "15mm", left: "10mm", right: "10mm" },
-    });
-    await browser.close();
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=mock_results.pdf");
-    res.send(pdfBuffer);
+    doc.end();
 
   } catch (err) {
-    console.error("Puppeteer PDF error:", err);
-    res.status(500).json({ ok: false, message: err.message });
+    console.error("PDFKit error:", err);
+    res.status(500).send(err.message);
+  }
+});
+
+
+router.get("/print-slips", async (req, res) => {
+  try {
+    const [students] = await db.query(
+      "SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname"
+    );
+    if (!students.length) return res.status(404).send("No students found.");
+
+    const [allResults] = await db.query(
+      "SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+    );
+
+    const resultsByStudent = {};
+    allResults.forEach(r => {
+      if (!resultsByStudent[r.studentname]) resultsByStudent[r.studentname] = [];
+      resultsByStudent[r.studentname].push(r);
+    });
+
+    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    let filename = "all-students-slips.pdf";
+    filename = encodeURIComponent(filename);
+
+    res.setHeader("Content-disposition", "inline; filename=" + filename);
+    res.setHeader("Content-type", "application/pdf");
+
+    doc.pipe(res);
+
+    students.forEach((student, index) => {
+      const subjects = resultsByStudent[student.studentname] || [];
+      const passedSubjectsCount = subjects.filter(s => ["A", "B", "C", "D"].includes(s.Grade.toUpperCase())).length;
+
+      if (logoExists) doc.image(logoPath, 50, 30, { width: 80 });
+      doc.font("Times-Bold").fontSize(16).fillColor("#005566").text("MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)", 150, 30, { align: "center" });
+      doc.moveDown();
+      doc.fontSize(12).fillColor("black").text("GENERAL MOCK O'LEVEL RESULTS", { align: "center" });
+      doc.moveDown(1);
+
+      doc.fontSize(12).fillColor("black").text(`Student Name: ${student.studentname}`, { continued: true });
+      doc.text(`   Class: ${student.Class}`, { continued: true });
+      doc.text(`   Passed Subjects: ${passedSubjectsCount} / ${subjects.length}`, { align: "right", fillColor: passedSubjectsCount >= 4 ? "green" : "red" });
+
+      // SUBJECTS TABLE
+      const startX = 50;
+      let startY = 150;
+      doc.fontSize(10).fillColor("black");
+      doc.text("Subject", startX, startY, { width: 150, align: "center" });
+      doc.text("Code", startX + 150, startY, { width: 100, align: "center" });
+      doc.text("Mark", startX + 250, startY, { width: 80, align: "center" });
+      doc.text("Grade", startX + 330, startY, { width: 80, align: "center" });
+      startY += 20;
+
+      subjects.forEach(s => {
+        doc.fillColor("black").text(s.Subject, startX, startY, { width: 150, align: "center" });
+        doc.text(s.Subject_Code, startX + 150, startY, { width: 100, align: "center" });
+        doc.text(s.Mark, startX + 250, startY, { width: 80, align: "center" });
+        doc.text(s.Grade, startX + 330, startY, { width: 80, align: "center" });
+        startY += 20;
+      });
+
+      if (index < students.length - 1) doc.addPage();
+    });
+
+    doc.end();
+
+  } catch (err) {
+    console.error("PDFKit slips error:", err);
+    res.status(500).send(err.message);
   }
 });
 
 export default router;
+
+
+
+
