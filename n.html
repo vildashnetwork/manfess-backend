@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Result Slip</title>
+  <style>
+    body {
+      font-family: "Times New Roman", serif;
+      margin: 40px;
+      padding: 20px;
+      border: 2px solid black;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header img {
+      height: 80px;
+    }
+    .school-info {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .student-info {
+      margin-bottom: 20px;
+      border: 1px solid #000;
+      padding: 10px;
+    }
+    .student-info p {
+      margin: 5px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    .summary {
+      margin-top: 20px;
+    }
+    .summary p {
+      margin: 5px 0;
+    }
+    .signatures {
+      margin-top: 40px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .sign {
+      text-align: center;
+      width: 30%;
+    }
+    .sign p {
+      margin-top: 60px;
+      border-top: 1px solid #000;
+      display: inline-block;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="school-logo.png" alt="School Logo"><br>
+    <div class="school-info">
+      <p>GENERAL MOCK O'LEVEL RESULTS</p>
+      <p>St. Peter’s Secondary School, Yaoundé</p>
+      <p>P.O Box 1234 - Cameroon</p>
+    </div>
+  </div>
+
+  <div class="student-info">
+    <p><b>Student Name:</b> John Doe</p>
+    <p><b>Class:</b> Form 4A</p>
+    <p><b>Term:</b> Second Term</p>
+    <p><b>Academic Year:</b> 2024 / 2025</p>
+    <p><b>Admission No:</b> 4521</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Subject Code</th>
+        <th>Mark</th>
+        <th>Grade</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Mathematics</td>
+        <td>MATH01</td>
+        <td>78</td>
+        <td>B</td>
+        <td>Very Good</td>
+      </tr>
+      <tr>
+        <td>English Language</td>
+        <td>ENG01</td>
+        <td>85</td>
+        <td>A</td>
+        <td>Excellent</td>
+      </tr>
+      <tr>
+        <td>Physics</td>
+        <td>PHY01</td>
+        <td>62</td>
+        <td>C</td>
+        <td>Good</td>
+      </tr>
+      <tr>
+        <td>Chemistry</td>
+        <td>CHEM01</td>
+        <td>48</td>
+        <td>D</td>
+        <td>Fair</td>
+      </tr>
+      <tr>
+        <td>Biology</td>
+        <td>BIO01</td>
+        <td>90</td>
+        <td>A</td>
+        <td>Excellent</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="summary">
+    <p><b>Total Marks:</b> 363 / 500</p>
+    <p><b>Average:</b> 72.6%</p>
+    <p><b>Position:</b> 3rd in Class</p>
+    <p><b>Class Teacher's Remark:</b> Keep up the hard work.</p>
+    <p><b>Principal's Remark:</b> Excellent performance, proud of you.</p>
+  </div>
+
+  <div class="signatures">
+    <div class="sign">
+      <p>Class Teacher</p>
+    </div>
+    <div class="sign">
+      <p>Principal</p>
+    </div>
+    <div class="sign">
+      <p>Parent/Guardian</p>
+    </div>
+  </div>
+
+</body>
+</html>

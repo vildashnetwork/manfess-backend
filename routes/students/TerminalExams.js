@@ -1,154 +1,3 @@
-// import express from "express";
-// import db from "../../middlewares/db.js";
-
-// const router = express.Router();
-
-// // ✅ Fetch students (from both tables)
-// router.get("/students/all", (req, res) => {
-//   const { class: className, department } = req.query;
-
-//   const query1 = `
-//     SELECT localid, id, FirstName, LastName, DOB, ParentName, FeesComplete,
-//            level, AmountPaid, ExpectedAmount, BalanceLeft, SchoolYear, Department
-//     FROM students
-//     WHERE (? IS NULL OR level = ?) AND (? IS NULL OR Department = ?)
-//   `;
-
-//   const query2 = `
-//     SELECT localid, id, FirstName, LastName, DOB, ParentName, FeesComplete,
-//            level, AmountPaid, ExpectedAmount, BalanceLeft, SchoolYear, Department
-//     FROM studentsalevel
-//     WHERE (? IS NULL OR level = ?) AND (? IS NULL OR Department = ?)
-//   `;
-
-//   db.query(query1, [className || null, className || null, department || null, department || null], (err1, res1) => {
-//     if (err1) return res.status(500).json({ error: "DB error: " + err1.message });
-
-//     db.query(query2, [className || null, className || null, department || null, department || null], (err2, res2) => {
-//       if (err2) return res.status(500).json({ error: "DB error: " + err2.message });
-
-//       // merge results in JS instead of UNION
-//       const merged = [...res1, ...res2];
-//       res.json(merged);
-//     });
-//   });
-// });
-
-// // ✅ Insert or update terminal results (single or batch)
-// router.post("/terminalresults", (req, res) => {
-//   const payload = req.body;
-
-//   // CASE 1: Batch (array of results)
-//   if (Array.isArray(payload)) {
-//     if (!payload.length) {
-//       return res.status(400).json({ error: "Empty results array" });
-//     }
-
-//     const tasks = payload.map((rec) => {
-//       return new Promise((resolve, reject) => {
-//         const { studentname, Class, Department, Subject, Subject_Code, Mark, sequence } = rec;
-
-//         if (!studentname || !Class || !Department || !Subject || !Subject_Code || Mark == null || !sequence) {
-//           return reject(`Missing fields in record: ${JSON.stringify(rec)}`);
-//         }
-
-//         const checkQuery = `
-//           SELECT id FROM terminalresults 
-//           WHERE studentname = ? AND Subject = ? AND sequence = ?
-//         `;
-
-//         db.query(checkQuery, [studentname, Subject, sequence], (err, results) => {
-//           if (err) return reject(err);
-
-//           if (results.length > 0) {
-//             const updateQuery = `
-//               UPDATE terminalresults 
-//               SET Mark = ?, Class = ?, Department = ?, Subject_Code = ?
-//               WHERE studentname = ? AND Subject = ? AND sequence = ?
-//             `;
-//             db.query(updateQuery, [Mark, Class, Department, Subject_Code, studentname, Subject, sequence], (err2) => {
-//               if (err2) return reject(err2);
-//               resolve({ studentname, status: "updated" });
-//             });
-//           } else {
-//             const insertQuery = `
-//               INSERT INTO terminalresults (studentname, Class, Department, Subject, Subject_Code, Mark, sequence)
-//               VALUES (?, ?, ?, ?, ?, ?, ?)
-//             `;
-//             db.query(insertQuery, [studentname, Class, Department, Subject, Subject_Code, Mark, sequence], (err3, result) => {
-//               if (err3) return reject(err3);
-//               resolve({ studentname, status: "inserted", id: result.insertId });
-//             });
-//           }
-//         });
-//       });
-//     });
-
-//     Promise.allSettled(tasks).then((results) => {
-//       res.json({ message: "Batch processed", results });
-//     });
-//   } 
-  
-//   // CASE 2: Single record
-//   else {
-//     const { studentname, Class, Department, Subject, Subject_Code, Mark, sequence } = payload;
-
-//     if (!studentname || !Class || !Department || !Subject || !Subject_Code || Mark == null || !sequence) {
-//       return res.status(400).json({ error: "All fields are required" });
-//     }
-
-//     const checkQuery = `
-//       SELECT id FROM terminalresults 
-//       WHERE studentname = ? AND Subject = ? AND sequence = ?
-//     `;
-
-//     db.query(checkQuery, [studentname, Subject, sequence], (err, results) => {
-//       if (err) {
-//         console.error("Error checking terminal result:", err);
-//         return res.status(500).json({ error: "Database error" });
-//       }
-
-//       if (results.length > 0) {
-//         const updateQuery = `
-//           UPDATE terminalresults 
-//           SET Mark = ?, Class = ?, Department = ?, Subject_Code = ?
-//           WHERE studentname = ? AND Subject = ? AND sequence = ?
-//         `;
-//         db.query(updateQuery, [Mark, Class, Department, Subject_Code, studentname, Subject, sequence], (err2) => {
-//           if (err2) {
-//             console.error("Error updating terminal result:", err2);
-//             return res.status(500).json({ error: "Database error" });
-//           }
-//           res.json({ message: "Existing record updated" });
-//         });
-//       } else {
-//         const insertQuery = `
-//           INSERT INTO terminalresults (studentname, Class, Department, Subject, Subject_Code, Mark, sequence)
-//           VALUES (?, ?, ?, ?, ?, ?, ?)
-//         `;
-//         db.query(insertQuery, [studentname, Class, Department, Subject, Subject_Code, Mark, sequence], (err3, result) => {
-//           if (err3) {
-//             console.error("Error inserting terminal result:", err3);
-//             return res.status(500).json({ error: "Database error" });
-//           }
-//           res.json({ message: "New record inserted", id: result.insertId });
-//         });
-//       }
-//     });
-//   }
-// });
-
-// export default router;
-
-
-
-
-
-
-
-
-
-
 
 import express from 'express';
 import db from '../../middlewares/db.js';
@@ -243,6 +92,81 @@ router.get("/firstsequence", async(req,res)=>{
     res.status(500).json({ error: 'Server error' });
   }
 })
+
+
+// router.post("/firstsequence/print/:studentName", async (req, res) => {
+//   try {
+//     const { studentName } = req.params;
+
+//     const [rows] = await db.query(
+//       `SELECT studentname, Class, Subject, Mark, Grade 
+//        FROM terminalresults 
+//        WHERE sequence = 'First Sequence' AND studentname = ?`,
+//       [studentName]
+//     );
+
+//     if (rows.length === 0) {
+//       return res.status(404).json({ error: "No results found for this student" });
+//     }
+
+//     const doc = new PDFDocument({ margin: 40, size: "A4" });
+
+//     res.setHeader("Content-Type", "application/pdf");
+//     res.setHeader(
+//       "Content-Disposition",
+//       `inline; filename=${studentName}_slip.pdf`
+//     );
+
+//     doc.pipe(res);
+
+//     // Header
+//     doc.image("public/logo.png", 30, 20, { width: 60 }); // company logo
+//     doc.image("public/school.png", 500, 20, { width: 60 }); // school logo
+//     doc.fontSize(12).text(
+//       "BELMON BILINGUAL HIGH SCHOOL\n200 METERS FROM RAIL, OPPOSITE ROYAL CITY, BONABERI – DOUALA - CAMEROON\nTel. 682 55 35 03 / 673 037 555 / 677 517 606\nAUT.Nº: GEN-430/23/MINESEC...\nAUT.Nº: TECH -035/24/MINESEC...",
+//       120,
+//       30,
+//       { align: "center", width: 350 }
+//     );
+
+//     doc.moveDown(3).fontSize(16).text("STUDENT REPORT SLIP - FIRST SEQUENCE", {
+//       align: "center",
+//     });
+
+//     // Student details
+//     const studentInfo = rows[0];
+//     doc.moveDown().fontSize(14).text(`Name: ${studentInfo.studentname}`);
+//     doc.text(`Class: ${studentInfo.Class}`);
+
+//     // Table
+//     doc.moveDown().fontSize(12);
+//     doc.text("Subject", { continued: true, width: 200 });
+//     doc.text("Mark", { continued: true, width: 100, align: "center" });
+//     doc.text("Grade", { align: "center" });
+
+//     rows.forEach((r) => {
+//       doc.text(r.Subject, { continued: true, width: 200 });
+//       doc.text(r.Mark.toString(), { continued: true, width: 100, align: "center" });
+//       doc.fillColor(gradeColor(r.Grade)).text(r.Grade, { align: "center" });
+//       doc.fillColor("black");
+//     });
+
+//     doc.end();
+//   } catch (error) {
+//     console.error("Server error:", error.message);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// });
+
+
+
+
+
+
+
+
+
+
 router.get("/secondsequence", async(req,res)=>{
   try {
     const [rows] = await db.query(`SELECT * FROM terminalresults WHERE sequence = 'Second Sequence'`);

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress Report Card</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Times New Roman', serif;
+        }
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #000;
+            line-height: 1.4;
+        }
+        .container {
+            width: 8.5in;
+            min-height: 11in;
+            margin: 0 auto;
+            padding: 0.5in;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            width: 1.5in;
+            height: 1.2in;
+            background-color: #ddd;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #999;
+        }
+        .ministry-info {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .ministry-info div {
+            margin-bottom: 5px;
+        }
+        .dashed-line {
+            border-bottom: 1px dashed #000;
+            margin: 5px 0;
+        }
+        .bilingual {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .english, .french {
+            width: 48%;
+        }
+        .contact-info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        .auth-numbers {
+            margin-bottom: 15px;
+        }
+        .school-year {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .report-title {
+            text-align: center;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 15px;
+        }
+        .student-info {
+            margin-bottom: 15px;
+        }
+        .underline {
+            border-bottom: 1px solid #000;
+            display: inline-block;
+            min-width: 200px;
+        }
+        .school-name {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .cycle {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-decoration: underline;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        table, th, td {
+            border: 1px solid #000;
+        }
+        th, td {
+            padding: 5px;
+            text-align: center;
+        }
+        th {
+            font-weight: bold;
+        }
+        .subject-col {
+            text-align: left;
+            width: 25%;
+        }
+        .seq-col {
+            width: 10%;
+        }
+        .remarks-col {
+            width: 20%;
+        }
+        .totals-row {
+            font-weight: bold;
+        }
+        .term-av {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .discipline-section {
+            margin-top: 15px;
+        }
+        .next-term {
+            margin-top: 15px;
+            font-style: italic;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-left {
+            text-align: left;
+        }
+        .signature-area {
+            height: 60px;
+            vertical-align: top;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 40px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">School Logo</div>
+            <div class="ministry-info">
+                <div>REPUBLIC OF CAMEROON</div>
+                <div>Peace-Work-Fatherland</div>
+                <div class="dashed-line"></div>
+                <div>MINISTRY OF SECONDARY EDUCATION</div>
+                <div class="dashed-line"></div>
+                <div>REGIONAL DELEGATION OF LITTORAL</div>
+                <div class="dashed-line"></div>
+                <div>DIVISIONAL DELEGATION OF WOURI</div>
+                <div class="dashed-line"></div>
+            </div>
+        </div>
+
+        <div class="bilingual">
+            <div class="english">
+                <div>REPUBLIC OF CAMEROON</div>
+                <div>Peace-Work-Fatherland</div>
+                <div class="dashed-line"></div>
+                <div>MINISTRY OF SECONDARY EDUCATION</div>
+                <div class="dashed-line"></div>
+                <div>REGIONAL DELEGATION OF LITTORAL</div>
+                <div class="dashed-line"></div>
+                <div>DIVISIONAL DELEGATION OF WOURI</div>
+                <div class="dashed-line"></div>
+            </div>
+            <div class="french">
+                <div>REPUBLIQUE DU CAMEROUN</div>
+                <div>Paix-Travail-Patrie</div>
+                <div class="dashed-line"></div>
+                <div>MINISTERE DES ENSEIGNEMENT SECONDAIRES</div>
+                <div class="dashed-line"></div>
+                <div>DELEGATION REGIONAL DU LITTORAL</div>
+                <div class="dashed-line"></div>
+                <div>DELEGATION DEPARTEMENTAL DU WOURI</div>
+                <div class="dashed-line"></div>
+            </div>
+        </div>
+
+        <div class="contact-info">
+            <div>LOCATED AT BELMON BILINGUAL HIGH SCHOOL, 200 METERS FROM RAIL OPPOSITE ROYAL CITY,</div>
+            <div>RAIL - BONABERI – DOUALA - CAMEROON. Tel. 682 55 35 03 / 673 037 555 / 677 517 606</div>
+        </div>
+
+        <div class="auth-numbers">
+            <div>AUT.Nº: GEN- 430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023</div>
+            <div>AUT.Nº: TECH - 035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024</div>
+        </div>
+
+        <div class="school-year">
+            SCHOOL YEAR: 20..... / 20......
+        </div>
+
+        <div class="report-title">
+            PROGRESS REPORT CARD FOR - .............. TERM
+        </div>
+
+        <div class="student-info">
+            <div>Name of Student: <span class="underline"></span></div>
+            <div>Class: <span class="underline"></span> Number on Roll: <span class="underline"></span></div>
+        </div>
+
+        <div class="school-name">
+            MA NDUM FAVOURED EVENING SCHOOL
+        </div>
+
+        <div class="cycle">
+            FIRST CYCLE
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="subject-col">SUBJECTS</th>
+                    <th class="seq-col">SEQ 1<br>/20</th>
+                    <th class="seq-col">SEQ 2<br>/20</th>
+                    <th class="seq-col">AV. On 20</th>
+                    <th class="seq-col">COEF</th>
+                    <th class="seq-col">TOTAL</th>
+                    <th class="seq-col">Rank<br>ing</th>
+                    <th class="remarks-col">REMARKS & SIGNATURE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="8" class="text-left"><strong>GENERAL EDUCATION</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-left">English Language</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">French</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Mathematics<br>B O N A B E R I - D O U A L A -</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Literature in English</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Biology</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Chemistry</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Physics</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Economics</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Commerce</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Geography</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">History</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Citizenship</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td colspan="8" class="text-left"><strong>TECHNICAL/PROF. EDUCATION</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Accounting</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Business Mathematics</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Office Practice</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Computer Science</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Law & Government</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Physical Education</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr>
+                    <td class="text-left">Manual Work</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="signature-area"></td>
+                </tr>
+                <tr class="totals-row">
+                    <td colspan="4" class="text-right">TOTALS =</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="term-av">
+            <div>1<sup>st</sup> Term Av ---------- /20 Class Av ---------- /20</div>
+            <div>Terminal Position ---------------- out of ------------------</div>
+        </div>
+
+        <div class="discipline-section">
+            <div><strong>DISCIPLINE: CLASS COUNCIL DECISION PRINCIPAL'S REMARKS:</strong></div>
+            <div>Absence Honor's Roll</div>
+            <div>Warning-Conduct Encouragement</div>
+            <div>Serious Warning Congratulations</div>
+            <div>Suspension (In Days) Average</div>
+            <div>Promoted Repeated</div>
+        </div>
+
+        <div class="next-term">
+            <div>NEXT TERM BEGINS: Monday 06<sup>th</sup> January, 2025 Douala, The:18<sup>th</sup> December, 2024</div>
+        </div>
+    </div>
+</body>
+</html>
