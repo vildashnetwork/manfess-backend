@@ -1,292 +1,995 @@
-import express from "express";
-import PDFDocument from "pdfkit";
-import fs from "fs";
-import path from "path";
-import db from '../../../middlewares/db.js';
 
-const router = express.Router();
 
-/* CONFIGURATIONS */
-const PAGE_SIZE = "A4";
-const PAGE_LAYOUT = "portrait";
-const MARGIN = 36;
-const HEADER_HEIGHT = 100;
-const FOOTER_HEIGHT = 40;
-const ROW_HEIGHT = 24;
-const CELL_PADDING = 6;
+// import express from "express";
+// import puppeteer from "puppeteer";
+// import db from "../../../middlewares/db.js";
+// import fs from "fs";
+// import path from "path";
 
-// Color palette
-const COLORS = {
-  primary: "#0A3D62", // Dark blue for headers
-  text: "#333333", // Dark gray for body text
-  lightText: "#777777", // Lighter gray for subtitles
-  border: "#CCCCCC", // Light gray for borders
-  pass: "#27AE60", // Green for passing grades
-  fail: "#E74C3C", // Red for failing grades
-};
+// const router = express.Router();
 
-// Font settings - use built-in PDFKit fonts for maximum stability
-const FONTS = {
-  regular: "Helvetica",
-  bold: "Helvetica-Bold",
-};
+// const safeString = (val) => (val === null || val === undefined ? "" : String(val).trim());
 
-/* HELPER FUNCTIONS */
-const safeString = (value) => (value === null || value === undefined ? "" : String(value).trim());
+// const logoPath = path.join(process.cwd(), "public", "logo.png");
+// const logoBase64 = fs.existsSync(logoPath)
+//   ? `data:image/png;base64,${fs.readFileSync(logoPath, { encoding: "base64" })}`
+//   : "";
 
-const chunkArray = (array, size) => {
-  const chunks = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-};
 
-const getGradeColor = (grade) => {
-  const upperGrade = safeString(grade).toUpperCase();
-  return ["A", "B", "C"].includes(upperGrade) ? COLORS.pass : COLORS.fail;
-};
+// router.get("/", async (req, res) => {
+//   try {
+//     const sequence = req.query.sequence || null;
 
-/* ROUTE HANDLER */
-router.get("/", async (req, res) => {
-  try {
-    const sequence = req.query.sequence || null;
-    const sql = `
-      SELECT studentname, Class, Subject, Subject_Code, Mark, Grade
-      FROM mock_results_olevel
-      ${sequence ? "WHERE sequence = ?" : ""}
-      ORDER BY studentname, Subject;
-    `;
-    const params = sequence ? [sequence] : [];
-    const [rows] = await db.query(sql, params);
+//     const sql = `
+//       SELECT studentname, Class, Subject, Grade
+//       FROM mock_results_olevel
+//       ${sequence ? "WHERE sequence = ?" : ""}
+//       ORDER BY studentname, Subject;
+//     `;
+//     const params = sequence ? [sequence] : [];
+//     const [rows] = await db.query(sql, params);
 
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ ok: false, message: "No results found." });
-    }
+//     if (!rows || rows.length === 0) {
+//       return res.status(404).json({ ok: false, message: "No results found." });
+//     }
 
-    // Build data structures
-    const students = [];
-    const subjects = [];
-    const resultsByStudent = {};
-    const studentClasses = {};
+//     const students = [];
+//     const subjects = [];
+//     const results = {};
 
-    rows.forEach((row) => {
-      const studentName = safeString(row.studentname);
-      const subject = safeString(row.Subject);
-      if (!students.includes(studentName)) students.push(studentName);
-      if (!subjects.includes(subject)) subjects.push(subject);
-      resultsByStudent[studentName] = resultsByStudent[studentName] || {};
-      resultsByStudent[studentName][subject] = {
-        mark: safeString(row.Mark),
-        grade: safeString(row.Grade),
-      };
-      if (!studentClasses[studentName] && row.Class) {
-        studentClasses[studentName] = safeString(row.Class);
-      }
-    });
+//     rows.forEach(r => {
+//       const student = r.studentname;
+//       const subject = r.Subject;
+//       const grade = r.Grade;
 
-    // Initialize PDF doc and stream
-    const doc = new PDFDocument({
-      size: PAGE_SIZE,
-      layout: PAGE_LAYOUT,
-      margin: MARGIN,
-      autoFirstPage: false,
-    });
+//       if (!students.includes(student)) students.push(student);
+//       if (!subjects.includes(subject)) subjects.push(subject);
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=mock_results.pdf");
-    doc.pipe(res);
+//       results[student] = results[student] || {};
+//       results[student][subject] = grade;
+//     });
 
-    // Immediately add first page so doc.page is available
-    doc.addPage();
+//     const tableHead = `
+//       <tr>
+//         <th>STUDENTS</th>
+//         ${subjects.map(s => `<th>${s}</th>`).join("")}
+//         <th>Passed Subjects</th>
+//       </tr>
+//     `;
 
-    // Usable dims (safe because we added a page)
-    const usableWidth = doc.page.width - MARGIN * 2;
-    const usableHeight = doc.page.height - MARGIN * 2 - HEADER_HEIGHT - FOOTER_HEIGHT;
+//     const tableBody = students.map(student => {
+//       const passedCount = subjects.reduce((count, subj) => {
+//         const grade = results[student][subj] || "";
+//         return ["A", "B", "C"].includes(grade.toUpperCase()) ? count + 1 : count;
+//       }, 0);
 
-    // Images paths (safe checks)
-    const letterheadPath = path.join(process.cwd(), "public", "logo.png");
-    const companyLogoPath = path.join(process.cwd(), "public", "logo.png");
+//       return `
+//         <tr>
+//           <td class="student">${student}</td>
+//           ${subjects.map(subj => {
+//             const grade = results[student][subj] || "";
+//             const isPass = ["A", "B", "C"].includes(grade.toUpperCase());
+//             return `<td class="${isPass ? "pass" : "fail"}">${grade}</td>`;
+//           }).join("")}
+//           <td class="passed-count">${passedCount}</td>
+//         </tr>
+//       `;
+//     }).join("");
 
-    // Table sizing: student column + dynamic subject columns
-    const studentColWidth = 140; // name column width
-    // Ensure at least 1 column and reasonable minimum width
-    const minSubjectCol = 70;
-    const maxSubjectColsFit = Math.max(1, Math.floor((usableWidth - studentColWidth) / minSubjectCol));
-    // If subjects > maxSubjectColsFit we'll split horizontally into chunks
-    const subjectChunks = chunkArray(subjects, maxSubjectColsFit);
+//     const html = `
+//     <!DOCTYPE html>
+//     <html lang="en">
+//     <head>
+//       <meta charset="UTF-8">
+//       <title>GENERAL MOCK O'LEVEL RESULTS</title>
+//       <style>
+//         body { font-family: "Times New Roman", serif; margin: 10px; }
+        
+//         /* Header */
+//         .header { width: 100%; margin-bottom: 20px; border-bottom: 3px solid #005566; }
+//         .top-banner { background: #005566; color: #fff; padding: 5px 10px; text-align: center; font-weight: bold; letter-spacing: 1px; font-size: 12px; }
+//         .header-content { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+//         .logo { max-height: 80px; }
+//         .school-name { text-align: center; flex: 1; font-size: 20px; font-weight: bold; color: #005566; text-transform: uppercase; }
+//         .sequence-info { text-align: right; font-size: 12px; color: #333; }
+//         .school-details { margin-top: 10px; border: 1px solid #005566; padding: 8px; font-size: 10px; line-height: 1.4; border-radius: 5px; background: #f0f8ff; }
+        
+//         h1 { text-align: center; margin: 15px 0; text-transform: uppercase; font-size: 16px; color: #005566; }
 
-    // vertical pagination per page: compute rows that fit
-    const rowsPerPage = Math.max(4, Math.floor((usableHeight - 36) / ROW_HEIGHT));
+//         /* Table */
+//         table { width: 100%; border-collapse: collapse; font-size: 10px; }
+//         th, td { border: 1px solid #000; padding: 5px; text-align: center; }
+//         th { background: #f4f4f4; }
+//         .student { text-align: left; font-weight: bold; }
+//         .pass { color: green; font-weight: bold; }
+//         .fail { color: red; font-weight: bold; }
+//         .passed-count { font-weight: bold; color: blue; }
+//       </style>
+//     </head>
+//     <body>
+//       <div class="header">
+//         <div class="top-banner"> MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS) - GENERAL MOCK O'LEVEL RESULTS</div>
+//         <div class="header-content">
+//           <img src="${logoBase64}" class="logo" alt="School Logo">
+//           <div class="school-name"> MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)</div>
+//           <div class="sequence-info">${sequence ? sequence : ""}</div>
+//         </div>
+//         <div class="school-details">
+//           LOCATED AT 200 METERS FROM RAIL OPPOSITE ROYAL CITY, RAIL - BONABERI – DOUALA - CAMEROON. <br>
+//           Tel: 682 55 35 03 / 673 037 555 / 677 517 606 <br>
+//           AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023 <br>
+//           AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024
+//         </div>
+//       </div>
 
-    // header drawing
-    function drawHeader(currentYStart = MARGIN) {
-      let currentY = currentYStart;
+//       <h1>GENERAL MOCK O'LEVEL RESULTS ${sequence ? "- " + sequence : ""}</h1>
 
-      // Draw letterhead image centered if exists
-      if (fs.existsSync(letterheadPath)) {
-        try {
-          // fit image into header height leaving small padding
-          doc.image(letterheadPath, MARGIN, currentY, { width: usableWidth, height: HEADER_HEIGHT - 18, align: "center" });
-          currentY += HEADER_HEIGHT - 18;
-        } catch (e) {
-          // fallback to text if image error
-          currentY += 2;
-        }
-      }
+//       <table>
+//         <thead>${tableHead}</thead>
+//         <tbody>${tableBody}</tbody>
+//       </table>
+//     </body>
+//     </html>
+//     `;
 
-      // If image not present or we want text, write school info (this will not overlap because currentY moved)
-      if (!fs.existsSync(letterheadPath)) {
-        doc.font(FONTS.bold).fontSize(14).fillColor(COLORS.primary)
-          .text("MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)", MARGIN, currentY, { align: "center", width: usableWidth });
-        currentY += 18;
-        doc.font(FONTS.regular).fontSize(9).fillColor(COLORS.lightText)
-          .text("LOCATED AT BELMON BILINGUAL HIGH SCHOOL, 200 METERS FROM RAIL OPPOSITE ROYAL CITY, RAIL - BONABERI – DOUALA - CAMEROON.", MARGIN, currentY, { align: "center", width: usableWidth });
-        currentY += 14;
-        doc.text("Tel. 682 55 35 03 / 673 037 555 / 677 517 606", { align: "center", width: usableWidth });
-        currentY += 14;
-        doc.fontSize(8).text("AUT.Nº: GEN- 430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023   AUT.Nº: TECH - 035/24/MINESEC/...", MARGIN, currentY, { align: "center", width: usableWidth });
-        currentY += 12;
-      }
+//     const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+//     const page = await browser.newPage();
+//     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
 
-      // Draw small company logo top-left (if present) without clashing
-      if (fs.existsSync(companyLogoPath)) {
-        try {
-          doc.image(companyLogoPath, MARGIN, MARGIN + 8, { width: 56, height: 56 });
-        } catch (e) {
-          /* ignore image drawing errors */
-        }
-      }
+//     const pdfBuffer = await page.pdf({
+//       format: "A4",
+//       landscape: true,
+//       printBackground: true,
+//       margin: { top: "15mm", bottom: "15mm", left: "10mm", right: "10mm" },
+//     });
 
-      // Title centered below letterhead
-      doc.font(FONTS.bold).fontSize(12).fillColor(COLORS.primary)
-        .text("GENERAL MOCK O'LEVEL RESULTS", MARGIN, MARGIN + HEADER_HEIGHT - 36, { align: "center", width: usableWidth });
+//     await browser.close();
 
-      if (sequence) {
-        doc.font(FONTS.regular).fontSize(9).fillColor(COLORS.lightText)
-          .text(`Sequence: ${sequence}`, MARGIN, MARGIN + HEADER_HEIGHT - 18, { align: "center", width: usableWidth });
-      }
+//     res.setHeader("Content-Type", "application/pdf");
+//     res.setHeader("Content-Disposition", "inline; filename=mock_results.pdf");
+//     res.send(pdfBuffer);
 
-      // separator
-      doc.moveTo(MARGIN, MARGIN + HEADER_HEIGHT).lineTo(MARGIN + usableWidth, MARGIN + HEADER_HEIGHT)
-        .lineWidth(0.6).strokeColor(COLORS.border).stroke();
+//   } catch (err) {
+//     console.error("Puppeteer PDF error:", err);
+//     res.status(500).json({ ok: false, message: err.message });
+//   }
+// });
 
-      return MARGIN + HEADER_HEIGHT; // y position to start layout from
-    }
 
-    // footer drawing
-    function drawFooter() {
-      const footerY = doc.page.height - MARGIN - FOOTER_HEIGHT + 8;
-      doc.font(FONTS.regular).fontSize(8).fillColor(COLORS.lightText)
-        .text(`Generated: ${new Date().toLocaleString()}`, MARGIN, footerY, { align: "left" });
-      doc.text("Powered by VDash Network", MARGIN, footerY + 12, { align: "left" });
-      doc.text(`Page ${doc.page.number}`, MARGIN + usableWidth - 60, footerY, { align: "right" });
-    }
 
-    // Draw a single subject-chunk table across possibly multiple vertical pages.
-    // The table will be centered horizontally on the page.
-    function drawTableForSubjectChunk(subjChunk) {
-      // compute widths for this chunk so table can be centered
-      const subjectColW = Math.max(minSubjectCol, Math.floor((usableWidth - studentColWidth) / subjChunk.length));
-      const totalTableWidth = studentColWidth + subjectColW * subjChunk.length;
-      const offsetX = MARGIN + Math.floor((usableWidth - totalTableWidth) / 2); // center table
 
-      // Prepare table header values
-      const headerTopY = MARGIN + HEADER_HEIGHT + 10;
-      const headerHeightUsed = 22;
 
-      // Split students vertically into pages
-      const studentPages = chunkArray(students, rowsPerPage);
 
-      studentPages.forEach((studentChunk, pageIndex) => {
-        // For first overall page: we already added page; for subsequent pages add a new one
-        if (doc.page && doc.page._pageBuffer && doc.page.number > 0 && !(doc.page.number === 1 && pageIndex === 0 && subjChunk === subjectChunks[0])) {
-          // If current page is not the right one, add a new page. (This avoids duplicating first page)
-        }
-        if (!(doc.page && doc.page.number === 1 && pageIndex === 0 && subjChunk === subjectChunks[0])) {
-          doc.addPage();
-        }
 
-        // draw header & footer on this page
-        drawHeader();
-        drawFooter();
+// // router.get("/print-slips", async (req, res) => {
+// //   try {
+// //     // Fetch all students
+// //     const [students] = await db.query(
+// //       "SELECT DISTINCT studentname, Class, id FROM mock_results_olevel ORDER BY studentname"
+// //     );
 
-        // draw header row background
-        doc.rect(offsetX, headerTopY, totalTableWidth, headerHeightUsed).fillOpacity(0.03).fill(COLORS.subtle).fillOpacity(1);
+// //     if (students.length === 0) {
+// //       return res.status(404).send("No students found.");
+// //     }
 
-        // Draw header labels: Student | Subject columns
-        doc.font(FONTS.bold).fontSize(9).fillColor(COLORS.text);
-        doc.text("Student", offsetX + CELL_PADDING, headerTopY + 4, { width: studentColWidth - CELL_PADDING * 2, align: "left" });
+// //     // Fetch all subjects grouped by student
+// //     const [allResults] = await db.query(
+// //       "SELECT id, studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+// //     );
 
-        // Subject headers centered
-        let hx = offsetX + studentColWidth;
-        for (const subj of subjChunk) {
-          doc.text(subj, hx + CELL_PADDING, headerTopY + 4, { width: subjectColW - CELL_PADDING * 2, align: "center" });
-          hx += subjectColW;
-        }
+// //     // Group results by student
+// //     const resultsByStudent = {};
+// //     allResults.forEach(r => {
+// //       if (!resultsByStudent[r.id]) resultsByStudent[r.id] = [];
+// //       resultsByStudent[r.id].push(r);
+// //     });
 
-        // header underline
-        doc.moveTo(offsetX, headerTopY + headerHeightUsed).lineTo(offsetX + totalTableWidth, headerTopY + headerHeightUsed).strokeColor(COLORS.border).lineWidth(0.5).stroke();
+// //     // Build HTML with page-breaks per student
+// //     const slipsHtml = students.map(student => {
+// //       const subjects = resultsByStudent[student.id] || [];
+// //       return `
+// //         <div class="slip">
+// //           <div class="header">
+// //             <img src="https://via.placeholder.com/80" alt="School Logo">
+// //             <h2>GENERAL MOCK O'LEVEL RESULTS</h2>
+// //             <p>LOCATED AT BELMON BILINGUAL HIGH SCHOOL, 200 METERS FROM RAIL OPPOSITE ROYAL CITY,<br>
+// //             RAIL - BONABERI – DOUALA - CAMEROON.<br>
+// //             Tel. 682 55 35 03 / 673 037 555 / 677 517 606</p>
+// //             <p>AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023</p>
+// //             <p>AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024</p>
+// //             <h3>Student Result Slip</h3>
+// //           </div>
 
-        // Draw rows
-        let rowY = headerTopY + headerHeightUsed + 6;
-        doc.font(FONTS.regular).fontSize(9).fillColor(COLORS.text);
+// //           <div class="student-info">
+// //             <p><b>Student Name:</b> ${student.studentname}</p>
+// //             <p><b>Class:</b> ${student.Class}</p>
+// //           </div>
 
-        for (const student of studentChunk) {
-          // Student name cell
-          doc.text(student, offsetX + CELL_PADDING, rowY, { width: studentColWidth - CELL_PADDING * 2, align: "left" });
+// //           <table>
+// //             <thead>
+// //               <tr>
+// //                 <th>Subject</th>
+// //                 <th>Code</th>
+// //                 <th>Mark</th>
+// //                 <th>Grade</th>
+// //               </tr>
+// //             </thead>
+// //             <tbody>
+// //               ${subjects.map(s => `
+// //                 <tr>
+// //                   <td>${s.Subject}</td>
+// //                   <td>${s.Subject_Code}</td>
+// //                   <td>${s.Mark}</td>
+// //                   <td>${s.Grade}</td>
+// //                 </tr>
+// //               `).join("")}
+// //             </tbody>
+// //           </table>
+// //         </div>
+// //         <div class="page-break"></div>
+// //       `;
+// //     }).join("");
 
-          // Subject cells
-          let cx = offsetX + studentColWidth;
-          for (const subj of subjChunk) {
-            const res = (resultsByStudent[student] && resultsByStudent[student][subj]) || null;
-            if (res) {
-              const markText = safeString(res.mark);
-              const gradeText = safeString(res.grade).toUpperCase();
-              const gcol = getGradeColor(gradeText);
-              // mark on top (center)
-              doc.fillColor(COLORS.text).text(markText, cx + CELL_PADDING, rowY, { width: subjectColW - CELL_PADDING * 2, align: "center" });
-              // colored grade box below mark
-              const boxY = rowY + 12;
-              const boxX = cx + CELL_PADDING;
-              const boxW = subjectColW - CELL_PADDING * 2;
-              const boxH = 14;
-              doc.rect(boxX, boxY, boxW, boxH).fillOpacity(0.18).fill(gcol).fillOpacity(1);
-              doc.fillColor("#000000").font(FONTS.bold).fontSize(8).text(gradeText, boxX, boxY + 2, { width: boxW, align: "center" });
-              // restore font
-              doc.font(FONTS.regular).fontSize(9).fillColor(COLORS.text);
-            } else {
-              doc.fillColor(COLORS.lightText).text("-", cx + CELL_PADDING, rowY, { width: subjectColW - CELL_PADDING * 2, align: "center" });
-            }
-            cx += subjectColW;
-          }
+// //     const html = `
+// //       <!DOCTYPE html>
+// //       <html>
+// //       <head>
+// //         <meta charset="UTF-8">
+// //         <title>All Students Result Slips</title>
+// //         <style>
+// //           body { font-family: 'Times New Roman', serif; margin: 40px; padding: 20px; }
+// //           .header { text-align: center; margin-bottom: 20px; }
+// //           .header img { height: 80px; }
+// //           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+// //           table, th, td { border: 1px solid black; }
+// //           th, td { padding: 8px; text-align: center; }
+// //           th { background: #f2f2f2; }
+// //           .student-info { margin-top: 20px; }
+// //           .page-break { page-break-after: always; }
+// //         </style>
+// //       </head>
+// //       <body>
+// //         ${slipsHtml}
+// //       </body>
+// //       </html>
+// //     `;
 
-          // row separator
-          rowY += ROW_HEIGHT;
-          doc.moveTo(offsetX, rowY - 6).lineTo(offsetX + totalTableWidth, rowY - 6).strokeColor(COLORS.border).lineWidth(0.3).stroke();
-        }
+// //     // Puppeteer generate multi-page PDF
+// //     const browser = await puppeteer.launch({
+// //       headless: "new",
+// //       args: ["--no-sandbox", "--disable-setuid-sandbox"]
+// //     });
+// //     const page = await browser.newPage();
+// //     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
+// //     const pdfBuffer = await page.pdf({
+// //       format: "A4",
+// //       printBackground: true,
+// //       margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" }
+// //     });
+// //     await browser.close();
 
-        // Draw outer rectangle border for the table area for this page
-        const tableHeight = (studentChunk.length * ROW_HEIGHT) + headerHeightUsed + 12;
-        doc.rect(offsetX, headerTopY, totalTableWidth, tableHeight).lineWidth(0.6).strokeColor(COLORS.border).stroke();
-      });
-    } // end drawTableForSubjectChunk
+// //     // Send PDF
+// //     res.setHeader("Content-Type", "application/pdf");
+// //     res.setHeader("Content-Disposition", `inline; filename=all-students-slips.pdf`);
+// //     res.send(pdfBuffer);
 
-    // Build document pages for each horizontal subject chunk:
-    subjectChunks.forEach((subjChunk, idx) => {
-      // For first chunk: we already have initial page, but drawTable function manages new pages internally
-      drawTableForSubjectChunk(subjChunk);
-    });
+// //   } catch (err) {
+// //     console.error(err);
+// //     res.status(500).send("Error generating slips");
+// //   }
+// // });
 
-    // finalize PDF
-    doc.end();
-  } catch (error) {
-    console.error("PDF generation error:", error);
-    if (!res.headersSent) {
-      return res.status(500).json({ ok: false, message: error.message });
-    }
-    try { res.end(); } catch (_) {}
-  }
-});
+// // router.get("/print-slips", async (req, res) => {
+// //   try {
+// //     // Fetch all students
+// //     const [students] = await db.query(
+// //       "SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname"
+// //     );
 
-export default router;
+// //     if (!students.length) return res.status(404).send("No students found.");
+
+// //     // Fetch all results
+// //     const [allResults] = await db.query(
+// //       "SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+// //     );
+
+// //     // Group results by student name
+// //     const resultsByStudent = {};
+// //     allResults.forEach(r => {
+// //       if (!resultsByStudent[r.studentname]) resultsByStudent[r.studentname] = [];
+// //       resultsByStudent[r.studentname].push(r);
+// //     });
+
+// //     // Build HTML slips
+// //     const slipsHtml = students.map(student => {
+// //       const subjects = resultsByStudent[student.studentname] || [];
+// //       return `
+// //         <div class="slip">
+// //           <div class="header">
+// //             <img src="https://via.placeholder.com/100" alt="School Logo">
+// //             <h1>Belmon Bilingual High School</h1>
+// //             <h2>GENERAL MOCK O'LEVEL RESULTS</h2>
+// //             <p>LOCATED AT BELMON BILINGUAL HIGH SCHOOL, 200 METERS FROM RAIL OPPOSITE ROYAL CITY,<br>
+// //             RAIL - BONABERI – DOUALA - CAMEROON.<br>
+// //             Tel. 682 55 35 03 / 673 037 555 / 677 517 606</p>
+// //             <p>AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023</p>
+// //             <p>AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024</p>
+// //             <h3>Student Result Slip</h3>
+// //           </div>
+
+// //           <div class="student-info">
+// //             <p><b>Student Name:</b> ${student.studentname}</p>
+// //             <p><b>Class:</b> ${student.Class}</p>
+// //           </div>
+
+// //           <table>
+// //             <thead>
+// //               <tr>
+// //                 <th>Subject</th>
+// //                 <th>Code</th>
+// //                 <th>Mark</th>
+// //                 <th>Grade</th>
+// //               </tr>
+// //             </thead>
+// //             <tbody>
+// //               ${subjects.map((s, i) => `
+// //                 <tr style="background-color:${i % 2 === 0 ? '#f9f9f9' : '#ffffff'}">
+// //                   <td>${s.Subject}</td>
+// //                   <td>${s.Subject_Code}</td>
+// //                   <td>${s.Mark}</td>
+// //                   <td>${s.Grade}</td>
+// //                 </tr>
+// //               `).join('')}
+// //             </tbody>
+// //           </table>
+
+// //           <div class="footer">
+// //             <p>__________________________ &nbsp;&nbsp; Principal's Signature</p>
+// //           </div>
+// //         </div>
+// //         <div class="page-break"></div>
+// //       `;
+// //     }).join("");
+
+// //     // Full HTML template
+// //     const html = `
+// //       <!DOCTYPE html>
+// //       <html>
+// //       <head>
+// //         <meta charset="UTF-8">
+// //         <title>All Students Result Slips</title>
+// //         <style>
+// //           body { font-family: 'Times New Roman', serif; margin: 30px; }
+// //           .slip { border: 2px solid #000; padding: 20px; margin-bottom: 30px; }
+// //           .header { text-align: center; margin-bottom: 20px; }
+// //           .header img { height: 100px; }
+// //           h1 { margin-bottom: 5px; font-size: 24px; color: #003366; }
+// //           h2 { margin-bottom: 5px; font-size: 20px; color: #0055aa; }
+// //           h3 { margin-top: 10px; color: #444; }
+// //           .student-info { margin: 20px 0; font-size: 16px; }
+// //           table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+// //           table, th, td { border: 1px solid #000; }
+// //           th { background: #003366; color: #fff; padding: 10px; }
+// //           td { padding: 8px; text-align: center; }
+// //           .page-break { page-break-after: always; }
+// //           .footer { margin-top: 30px; text-align: left; font-size: 14px; }
+// //         </style>
+// //       </head>
+// //       <body>
+// //         ${slipsHtml}
+// //       </body>
+// //       </html>
+// //     `;
+
+// //     // Puppeteer PDF generation
+// //     const browser = await puppeteer.launch({
+// //       headless: "new",
+// //       args: ["--no-sandbox", "--disable-setuid-sandbox"]
+// //     });
+// //     const page = await browser.newPage();
+// //     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
+// //     const pdfBuffer = await page.pdf({
+// //       format: "A4",
+// //       printBackground: true,
+// //       margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" }
+// //     });
+// //     await browser.close();
+
+// //     // Send PDF
+// //     res.setHeader("Content-Type", "application/pdf");
+// //     res.setHeader("Content-Disposition", `inline; filename=all-students-slips.pdf`);
+// //     res.send(pdfBuffer);
+
+// //   } catch (err) {
+// //     console.error(err);
+// //     res.status(500).send("Error generating slips");
+// //   }
+// // });
+
+
+
+// // router.get("/print-slips", async (req, res) => {
+// //   try {
+// //     // Fetch all students
+// //     const [students] = await db.query(
+// //       "SELECT DISTINCT studentname, Class, id FROM mock_results_olevel ORDER BY studentname"
+// //     );
+
+// //     if (students.length === 0) {
+// //       return res.status(404).send("No students found.");
+// //     }
+
+// //     // Fetch all subjects grouped by student
+// //     const [allResults] = await db.query(
+// //       "SELECT id, studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+// //     );
+
+// //     // Group results by student
+// //     const resultsByStudent = {};
+// //     allResults.forEach(r => {
+// //       if (!resultsByStudent[r.id]) resultsByStudent[r.id] = [];
+// //       resultsByStudent[r.id].push(r);
+// //     });
+
+// //     // Build HTML with page-breaks per student
+// //     const slipsHtml = students.map(student => {
+// //       const subjects = resultsByStudent[student.id] || [];
+// //       return `
+// //         <div class="slip">
+// //           <div class="header">
+// //             <img src="https://via.placeholder.com/100" alt="School Logo" class="logo">
+// //             <h1>GENERAL MOCK O'LEVEL RESULTS</h1>
+// //             <p class="school-info">
+// //               BELMON BILINGUAL HIGH SCHOOL<br>
+// //               200 Meters from Rail Opposite Royal City, Rail - Bonaberi, Douala, Cameroon<br>
+// //               Tel: (+237) 682 55 35 03 / 673 037 555 / 677 517 606
+// //             </p>
+// //             <p class="auth-info">
+// //               AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023<br>
+// //               AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024
+// //             </p>
+// //             <h2>Student Result Slip</h2>
+// //           </div>
+
+// //           <div class="student-info">
+// //             <div class="info-box">
+// //               <span class="label">Student Name:</span> <span class="value">${student.studentname}</span>
+// //             </div>
+// //             <div class="info-box">
+// //               <span class="label">Class:</span> <span class="value">${student.Class}</span>
+// //             </div>
+// //           </div>
+
+// //           <table>
+// //             <thead>
+// //               <tr>
+// //                 <th>Subject</th>
+// //                 <th>Code</th>
+// //                 <th>Mark</th>
+// //                 <th>Grade</th>
+// //               </tr>
+// //             </thead>
+// //             <tbody>
+// //               ${subjects.map(s => `
+// //                 <tr>
+// //                   <td>${s.Subject}</td>
+// //                   <td>${s.Subject_Code}</td>
+// //                   <td>${s.Mark}</td>
+// //                   <td>${s.Grade}</td>
+// //                 </tr>
+// //               `).join("")}
+// //             </tbody>
+// //           </table>
+
+// //           <div class="footer">
+// //             <p>Issued by Belmon Bilingual High School</p>
+// //             <p class="watermark">Official Document</p>
+// //           </div>
+// //         </div>
+// //         <div class="page-break"></div>
+// //       `;
+// //     }).join("");
+
+// //     const html = `
+// //       <!DOCTYPE html>
+// //       <html>
+// //       <head>
+// //         <meta charset="UTF-8">
+// //         <title>All Students Result Slips</title>
+// //         <style>
+// //           body {
+// //             font-family: 'Roboto', 'Arial', sans-serif;
+// //             margin: 0;
+// //             padding: 30px;
+// //             background-color: #f5f6fa;
+// //             color: #333;
+// //           }
+// //           .slip {
+// //             background: #fff;
+// //             border-radius: 10px;
+// //             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+// //             padding: 20px;
+// //             margin-bottom: 30px;
+// //             max-width: 700px;
+// //             margin-left: auto;
+// //             margin-right: auto;
+// //             position: relative;
+// //             overflow: hidden;
+// //           }
+// //           .header {
+// //             text-align: center;
+// //             border-bottom: 2px solid #005566;
+// //             padding-bottom: 15px;
+// //             margin-bottom: 20px;
+// //           }
+// //           .header .logo {
+// //             height: 100px;
+// //             margin-bottom: 10px;
+// //           }
+// //           .header h1 {
+// //             font-size: 24px;
+// //             color: #005566;
+// //             margin: 10px 0;
+// //             font-weight: 700;
+// //             text-transform: uppercase;
+// //             letter-spacing: 1px;
+// //           }
+// //           .header h2 {
+// //             font-size: 18px;
+// //             color: #333;
+// //             font-weight: 500;
+// //             margin-top: 10px;
+// //           }
+// //           .school-info, .auth-info {
+// //             font-size: 12px;
+// //             color: #555;
+// //             line-height: 1.4;
+// //             margin: 5px 0;
+// //           }
+// //           .student-info {
+// //             display: flex;
+// //             flex-wrap: wrap;
+// //             gap: 20px;
+// //             margin: 20px 0;
+// //             background: #f8f9fd;
+// //             padding: 15px;
+// //             border-radius: 8px;
+// //           }
+// //           .info-box {
+// //             flex: 1;
+// //             min-width: 200px;
+// //           }
+// //           .info-box .label {
+// //             font-weight: 600;
+// //             color: #005566;
+// //             display: inline-block;
+// //             width: 120px;
+// //           }
+// //           .info-box .value {
+// //             font-weight: 400;
+// //             color: #333;
+// //           }
+// //           table {
+// //             width: 100%;
+// //             border-collapse: collapse;
+// //             margin-top: 20px;
+// //             font-size: 14px;
+// //           }
+// //           th, td {
+// //             border: 1px solid #ddd;
+// //             padding: 10px;
+// //             text-align: left;
+// //           }
+// //           th {
+// //             background: #005566;
+// //             color: #fff;
+// //             font-weight: 600;
+// //             text-transform: uppercase;
+// //             letter-spacing: 0.5px;
+// //           }
+// //           td {
+// //             background: #fff;
+// //             color: #333;
+// //           }
+// //           tr:nth-child(even) td {
+// //             background: #f8f9fd;
+// //           }
+// //           .footer {
+// //             text-align: center;
+// //             margin-top: 20px;
+// //             font-size: 12px;
+// //             color: #777;
+// //           }
+// //           .watermark {
+// //             position: absolute;
+// //             top: 50%;
+// //             left: 50%;
+// //             transform: translate(-50%, -50%) rotate(-45deg);
+// //             font-size: 40px;
+// //             color: rgba(0, 85, 102, 0.1);
+// //             pointer-events: none;
+// //             text-transform: uppercase;
+// //             font-weight: 700;
+// //           }
+// //           .page-break {
+// //             page-break-after: always;
+// //           }
+// //           @media print {
+// //             body {
+// //               background: #fff;
+// //               margin: 0;
+// //             }
+// //             .slip {
+// //               box-shadow: none;
+// //               margin: 0;
+// //               max-width: 100%;
+// //             }
+// //           }
+// //         </style>
+// //       </head>
+// //       <body>
+// //         ${slipsHtml}
+// //       </body>
+// //       </html>
+// //     `;
+
+// //     // Puppeteer generate multi-page PDF
+// //     const browser = await puppeteer.launch({
+// //       headless: "new",
+// //       args: ["--no-sandbox", "--disable-setuid-sandbox"]
+// //     });
+// //     const page = await browser.newPage();
+// //     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
+// //     await page.addStyleTag({
+// //       content: `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');`
+// //     });
+// //     const pdfBuffer = await page.pdf({
+// //       format: "A4",
+// //       printBackground: true,
+// //       margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" }
+// //     });
+// //     await browser.close();
+
+// //     // Send PDF
+// //     res.setHeader("Content-Type", "application/pdf");
+// //     res.setHeader("Content-Disposition", `inline; filename=all-students-slips.pdf`);
+// //     res.send(pdfBuffer);
+
+// //   } catch (err) {
+// //     console.error(err);
+// //     res.status(500).send("Error generating slips");
+// //   }
+// // });
+
+
+
+
+// // router.get("/print-slips", async (req, res) => {
+// //   try {
+// //     // Fetch all students
+// //     const [students] = await db.query(
+// //       "SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname"
+// //     );
+
+// //     if (!students.length) return res.status(404).send("No students found.");
+
+// //     // Fetch all results
+// //     const [allResults] = await db.query(
+// //       "SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+// //     );
+
+// //     // Group results by student name
+// //     const resultsByStudent = {};
+// //     allResults.forEach(r => {
+// //       if (!resultsByStudent[r.studentname]) resultsByStudent[r.studentname] = [];
+// //       resultsByStudent[r.studentname].push(r);
+// //     });
+
+// //     // Build HTML slips
+// //     const slipsHtml = students.map(student => {
+// //       const subjects = resultsByStudent[student.studentname] || [];
+// //       return `
+// //         <div class="slip">
+// //           <div class="header">
+// //             <img src="https://manfess-web.vercel.app/assets/logo-BnGfIcdL.png" alt="School Logo" class="logo">
+// //             <h1>GENERAL MOCK O'LEVEL RESULTS</h1>
+// //             <p class="school-info">
+// //               BELMON BILINGUAL HIGH SCHOOL<br>
+// //               200 Meters from Rail Opposite Royal City, Rail - Bonaberi, Douala, Cameroon<br>
+// //               Tel: (+237) 682 55 35 03 / 673 037 555 / 677 517 606
+// //             </p>
+// //             <p class="auth-info">
+// //               AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023<br>
+// //               AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024
+// //             </p>
+// //             <h2>Student Result Slip</h2>
+// //           </div>
+
+// //           <div class="student-info">
+// //             <div class="info-box">
+// //               <span class="label">Student Name:</span> <span class="value">${student.studentname}</span>
+// //             </div>
+// //             <div class="info-box">
+// //               <span class="label">Class:</span> <span class="value">${student.Class}</span>
+// //             </div>
+// //           </div>
+
+// //           <table>
+// //             <thead>
+// //               <tr>
+// //                 <th>Subject</th>
+// //                 <th>Code</th>
+// //                 <th>Mark</th>
+// //                 <th>Grade</th>
+// //               </tr>
+// //             </thead>
+// //             <tbody>
+// //               ${subjects.map((s, i) => `
+// //                 <tr style="background-color:${i % 2 === 0 ? '#f8f9fd' : '#ffffff'}">
+// //                   <td>${s.Subject}</td>
+// //                   <td>${s.Subject_Code}</td>
+// //                   <td>${s.Mark}</td>
+// //                   <td>${s.Grade}</td>
+// //                 </tr>
+// //               `).join("")}
+// //             </tbody>
+// //           </table>
+
+// //           <div class="footer">
+// //             <p>Issued by Belmon Bilingual High School</p>
+// //             <p class="watermark">Official Document</p>
+// //           </div>
+// //         </div>
+// //         <div class="page-break"></div>
+// //       `;
+// //     }).join("");
+
+// //     // Full HTML template
+// //     const html = `
+// //       <!DOCTYPE html>
+// //       <html>
+// //       <head>
+// //         <meta charset="UTF-8">
+// //         <title>All Students Result Slips</title>
+// //         <style>
+// //           body {
+// //             font-family: 'Roboto', 'Arial', sans-serif;
+// //             margin: 0;
+// //             padding: 30px;
+// //             background-color: #f5f6fa;
+// //             color: #333;
+// //           }
+// //           .slip {
+// //             background: #fff;
+// //             border-radius: 10px;
+// //             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+// //             padding: 20px;
+// //             margin-bottom: 30px;
+// //             max-width: 700px;
+// //             margin-left: auto;
+// //             margin-right: auto;
+// //             position: relative;
+// //             overflow: hidden;
+// //           }
+// //           .header {
+// //             text-align: center;
+// //             border-bottom: 2px solid #005566;
+// //             padding-bottom: 15px;
+// //             margin-bottom: 20px;
+// //           }
+// //           .header .logo { height: 100px; margin-bottom: 10px; }
+// //           .header h1 { font-size: 24px; color: #005566; margin: 10px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+// //           .header h2 { font-size: 18px; color: #333; font-weight: 500; margin-top: 10px; }
+// //           .school-info, .auth-info { font-size: 12px; color: #555; line-height: 1.4; margin: 5px 0; }
+// //           .student-info { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; background: #f8f9fd; padding: 15px; border-radius: 8px; }
+// //           .info-box { flex: 1; min-width: 200px; }
+// //           .info-box .label { font-weight: 600; color: #005566; display: inline-block; width: 120px; }
+// //           .info-box .value { font-weight: 400; color: #333; }
+// //           table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+// //           th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+// //           th { background: #005566; color: #fff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+// //           td { background: #fff; color: #333; }
+// //           tr:nth-child(even) td { background: #f8f9fd; }
+// //           .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+// //           .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 40px; color: rgba(0, 85, 102, 0.1); pointer-events: none; text-transform: uppercase; font-weight: 700; }
+// //           .page-break { page-break-after: always; }
+// //           @media print { body { background: #fff; margin: 0; } .slip { box-shadow: none; margin: 0; max-width: 100%; } }
+// //         </style>
+// //       </head>
+// //       <body>
+// //         ${slipsHtml}
+// //       </body>
+// //       </html>
+// //     `;
+
+// //     // Puppeteer generate multi-page PDF
+// //     const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+// //     const page = await browser.newPage();
+// //     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
+// //     await page.addStyleTag({ content: `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');` });
+// //     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" } });
+// //     await browser.close();
+
+// //     // Send PDF
+// //     res.setHeader("Content-Type", "application/pdf");
+// //     res.setHeader("Content-Disposition", `inline; filename=all-students-slips.pdf`);
+// //     res.send(pdfBuffer);
+
+// //   } catch (err) {
+// //     console.error(err);
+// //     res.status(500).send("Error generating slips");
+// //   }
+// // });
+
+
+
+
+
+// router.get("/print-slips", async (req, res) => {
+//   try {
+//     // Fetch all students
+//     const [students] = await db.query(
+//       "SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname"
+//     );
+
+//     if (!students.length) return res.status(404).send("No students found.");
+
+//     // Fetch all results
+//     const [allResults] = await db.query(
+//       "SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+//     );
+
+//     // Group results by student name
+//     const resultsByStudent = {};
+//     allResults.forEach(r => {
+//       if (!resultsByStudent[r.studentname]) resultsByStudent[r.studentname] = [];
+//       resultsByStudent[r.studentname].push(r);
+//     });
+
+//     // Build HTML slips
+//     const slipsHtml = students.map(student => {
+//       const subjects = resultsByStudent[student.studentname] || [];
+
+//       // Count passed subjects
+//       const passedSubjectsCount = subjects.filter(s => ["A", "B", "C", "D"].includes(s.Grade.toUpperCase())).length;
+
+//       return `
+//         <div class="slip">
+//           <div class="header">
+//             <img src="https://manfess-web.vercel.app/assets/logo-BnGfIcdL.png" alt="School Logo" class="logo">
+//             <h1> MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS) - GENERAL MOCK O'LEVEL RESULTS</h1>
+//             <p class="school-info">
+//               MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)<br>
+//               200 Meters from Rail Opposite Royal City, Rail - Bonaberi, Douala, Cameroon<br>
+//               Tel: (+237) 682 55 35 03 / 673 037 555 / 677 517 606
+//             </p>
+//             <p class="auth-info">
+//               AUT.Nº: GEN-430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023<br>
+//               AUT.Nº: TECH-035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024
+//             </p>
+//             <h2>Student Result Slip</h2>
+//           </div>
+
+//           <div class="student-info">
+//             <div class="info-box">
+//               <span class="label">Student Name:</span> <span class="value" >${student.studentname}</span>
+//             </div>
+//             <div class="info-box">
+//               <span class="label">Class:</span> <span class="value" style="margin-left: -40px;">${student.Class}</span>
+//             </div>
+//             <div class="info-box">
+//               <span class="label" style="width: 100px;">Subjects__Passed:</span> <span class="value" style="margin-left: 40px;"><span style="${passedSubjectsCount<4 ? 'color: red;' : 'color: green;'}">${passedSubjectsCount}</span> OUT OF ${subjects.length} <span style="${passedSubjectsCount<4 ? 'color: red;' : 'color: green;'} margin-left: 40px;">(${passedSubjectsCount<4 ? 'failed' : 'passed'}) </span></span> 
+//             </div>
+//           </div>
+
+//           <table>
+//             <thead>
+//               <tr>
+//                 <th>Subject</th>
+//                 <th>Code</th>
+//                 <th>Mark</th>
+//                 <th>Grade</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               ${subjects.map((s, i) => {
+//                 const isPass = ["A", "B", "C", "D"].includes(s.Grade.toUpperCase());
+//                 return `
+//                   <tr style="background-color:${i % 2 === 0 ? '#f8f9fd' : '#ffffff'}">
+//                     <td>${s.Subject}</td>
+//                     <td>${s.Subject_Code}</td>
+//                     <td>${s.Mark}</td>
+//                     <td style="color:${isPass ? 'green' : 'red'}; font-weight:600;">${s.Grade}</td>
+//                   </tr>
+//                 `;
+//               }).join("")}
+//             </tbody>
+//           </table>
+
+//           <div class="footer">
+//             <p>Issued by  MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS) powered by VILDASH NETWORK</p>
+//             <p class="watermark"> MA NDUM FAVOURED EVENING SECONDARY SCHOOL (MANFESS)</p>
+//           </div>
+//         </div>
+//         <div class="page-break"></div>
+//       `;
+//     }).join("");
+
+//     // Full HTML template
+//     const html = `
+//       <!DOCTYPE html>
+//       <html>
+//       <head>
+//         <meta charset="UTF-8">
+//         <title>All Students Result Slips</title>
+//         <style>
+//           body {
+//             font-family: 'Roboto', 'Arial', sans-serif;
+//             margin: 0;
+//             padding: 30px;
+//             background-color: #f5f6fa;
+//             color: #333;
+//           }
+//           .slip {
+//             background: #fff;
+//             border-radius: 10px;
+//             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+//             padding: 20px;
+//             margin-bottom: 30px;
+//             max-width: 700px;
+//             margin-left: auto;
+//             margin-right: auto;
+//             position: relative;
+//             overflow: hidden;
+//           }
+//           .header {
+//             text-align: center;
+//             border-bottom: 2px solid #005566;
+//             padding-bottom: 15px;
+//             margin-bottom: 20px;
+//           }
+//           .header .logo { height: 100px; margin-bottom: 10px; }
+//           .header h1 { font-size: 24px; color: #005566; margin: 10px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+//           .header h2 { font-size: 18px; color: #333; font-weight: 500; margin-top: 10px; }
+//           .school-info, .auth-info { font-size: 12px; color: #555; line-height: 1.4; margin: 5px 0; }
+//           .student-info { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; background: #f8f9fd; padding: 15px; border-radius: 8px; }
+//           .info-box { flex: 1; min-width: 200px; }
+//           .info-box .label { font-weight: 600; color: #005566; display: inline-block; width: 120px; }
+//           .info-box .value { font-weight: 400; color: #333; }
+//           table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+//           th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+//           th { background: #005566; color: #fff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+//           td { background: #fff; color: #333; }
+//           tr:nth-child(even) td { background: #f8f9fd; }
+//           .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+//           .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 40px; color: rgba(0, 85, 102, 0.1); pointer-events: none; text-transform: uppercase; font-weight: 700; }
+//           .page-break { page-break-after: always; }
+//           @media print { body { background: #fff; margin: 0; } .slip { box-shadow: none; margin: 0; max-width: 100%; } }
+//         </style>
+//       </head>
+//       <body>
+//         ${slipsHtml}
+//       </body>
+//       </html>
+//     `;
+
+//     // Puppeteer generate multi-page PDF
+//     const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+//     const page = await browser.newPage();
+//     await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 0 });
+//     await page.addStyleTag({ content: `@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');` });
+//     const pdfBuffer = await page.pdf({ format: "A4", printBackground: true, margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" } });
+//     await browser.close();
+
+//     // Send PDF
+//     res.setHeader("Content-Type", "application/pdf");
+//     res.setHeader("Content-Disposition", `inline; filename=all-students-slips.pdf`);
+//     res.send(pdfBuffer);
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Error generating slips");
+//   }
+// });
+
+// export default router;
