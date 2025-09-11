@@ -15,7 +15,7 @@ const SCHOOL_ADDRESS = "LOCATED AT 200 METERS FROM RAIL OPPOSITE ROYAL CITY, RAI
 const SCHOOL_CONTACT = "Tel: 682 55 35 03 / 673 037 555 / 677 517 606";
 const AUTH_INFO = "AUT.Nº: GEN- 430/23/MINESEC/SG/DESG/SDSGEPESG/SSGEPES/27/SEPT/2023 \nAUT.Nº: TECH - 035/24/MINESEC/SG/DESTP/SDSPETP/SSEPTP/07/FEB/2024";
 
-const PASSING_GRADES = new Set(["A", "B", "C","A+"]); // adjust if D is considered pass
+const PASSING_GRADES = new Set(["A", "B", "C", "A+"]); // adjust if D is considered pass
 
 // ---------- Helpers ----------
 function drawWatermark(doc, text, pageWidth, pageHeight) {
@@ -80,7 +80,7 @@ function drawHeaderContents(doc, options = {}) {
   // Title
   doc.moveDown(1);
   doc.font("Times-Bold").fontSize(12).fillColor("#005566");
-  doc.text("GENERAL MOCK O'LEVEL RESULTS SLIP", x, addrY + 56, {
+  doc.text("GENERAL PREMOCK O'LEVEL RESULTS SLIP", x, addrY + 56, {
     width: width,
     align: "center",
   });
@@ -138,7 +138,7 @@ router.get("/", async (req, res) => {
 
     const sql = `
       SELECT studentname, Class, Subject, Grade
-      FROM mock_results_olevel
+      FROM premock_results_olevel
       ${sequence ? "WHERE sequence = ?" : ""}
       ORDER BY studentname, Subject;
     `;
@@ -174,7 +174,7 @@ router.get("/", async (req, res) => {
 
     // stream
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=manfess_olevel_mock_results.pdf");
+    res.setHeader("Content-Disposition", "inline; filename=manfess_preolevel_mock_results.pdf");
     doc.pipe(res);
 
     doc.addPage();
@@ -335,7 +335,7 @@ router.get("/", async (req, res) => {
     doc.font("Times-Roman").fontSize(9).fillColor("#444");
     doc.text(`Issued by ${SCHOOL_NAME}`, doc.page.margins.left, footerY, { align: "left" });
 
-    drawWatermark(doc, "MANFESS MOCK RESULTS", pageWidth, pageHeight);
+    drawWatermark(doc, "MANFESS PREMOCK RESULTS", pageWidth, pageHeight);
 
     doc.end();
   } catch (err) {
@@ -348,10 +348,10 @@ router.get("/", async (req, res) => {
 // ---------- ROUTE 2: /print-slips (per student portrait slips) ----------
 router.get("/print-slips", async (req, res) => {
   try {
-    const [students] = await db.query("SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname");
+    const [students] = await db.query("SELECT DISTINCT studentname, Class FROM premock_results_olevel ORDER BY studentname");
     if (!students.length) return res.status(404).send("No students found.");
 
-    const [allResults] = await db.query("SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject");
+    const [allResults] = await db.query("SELECT studentname, Subject, Subject_Code, Mark, Grade FROM premock_results_olevel ORDER BY studentname, Subject");
 
     // Group by studentname
     const resultsByStudent = {};
@@ -374,7 +374,7 @@ router.get("/print-slips", async (req, res) => {
     });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=MANFESS_OLEVEL_SLIP_2025/2026.pdf");
+    res.setHeader("Content-Disposition", "inline; filename=MANFESS_PREMOCKOLEVEL_SLIP_2025/2026.pdf");
     doc.pipe(res);
 
     doc.addPage();
@@ -477,7 +477,7 @@ router.get("/print-slips", async (req, res) => {
       doc.font("Times-Roman").fontSize(9).fillColor("#444");
       doc.text(`Issued by ${SCHOOL_NAME}`, doc.page.margins.left, footerY, { align: "left" });
 
-      drawWatermark(doc, "MANFESS MOCK SLIP", pageWidth, pageHeight);
+      drawWatermark(doc, "MANFESS PREMOCK SLIP", pageWidth, pageHeight);
       // next student will addPage() above
     }
 
