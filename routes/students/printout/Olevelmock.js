@@ -346,14 +346,159 @@ router.get("/", async (req, res) => {
 
 
 // ---------- ROUTE 2: /print-slips (per student portrait slips) ----------
+// router.get("/print-slips", async (req, res) => {
+//   try {
+//     const [students] = await db.query("SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname");
+//     if (!students.length) return res.status(404).send("No students found.");
+
+//     const [allResults] = await db.query("SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject");
+
+//     // Group by studentname
+//     const resultsByStudent = {};
+//     allResults.forEach((r) => {
+//       const name = safeString(r.studentname);
+//       resultsByStudent[name] = resultsByStudent[name] || [];
+//       resultsByStudent[name].push({
+//         Subject: safeString(r.Subject),
+//         Subject_Code: safeString(r.Subject_Code),
+//         Mark: safeString(r.Mark),
+//         Grade: safeString(r.Grade),
+//       });
+//     });
+
+//     const doc = new PDFDocument({
+//       size: "A4",
+//       layout: "portrait",
+//       margins: { top: 36, bottom: 36, left: 36, right: 36 },
+//       autoFirstPage: false,
+//     });
+
+//     res.setHeader("Content-Type", "application/pdf");
+//     res.setHeader("Content-Disposition", "inline; filename=MANFESS_OLEVEL_SLIP_2025/2026.pdf");
+//     doc.pipe(res);
+
+//     doc.addPage();
+//     doc.font("Times-Roman");
+
+//     const pageWidth = doc.page.width;
+//     const pageHeight = doc.page.height;
+//     const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
+//     const startX = doc.page.margins.left;
+
+//     function drawHeaderForSlip() {
+//       return drawHeaderContents(doc, { x: startX, y: doc.page.margins.top, width: usableWidth, sequence: "" });
+//     }
+
+//     let first = true;
+//     for (const srow of students) {
+//       const name = safeString(srow.studentname);
+//       const studentClass = safeString(srow.Class);
+//       const subjects = resultsByStudent[name] || [];
+
+//       if (!first) doc.addPage();
+//       first = false;
+
+//       const headerBottom = drawHeaderForSlip();
+//       doc.y = headerBottom + 12;
+
+//       // student info box
+//       const infoBoxH = 52;
+//       doc.save();
+//       doc.rect(startX, doc.y, usableWidth, infoBoxH).fillAndStroke("#f8f9fd", "#ddd");
+//       doc.fillColor("#003f3f").font("Times-Bold").fontSize(10);
+//       doc.text("Student Name:", startX + 8, doc.y + 15, { continued: true });
+//       doc.font("Times-Roman").text(` ${name}`, { continued: false });
+
+//       doc.font("Times-Bold").text("Class:", startX + usableWidth / 3 + 8, doc.y - 10, { continued: true });
+//       doc.font("Times-Roman").text(` ${studentClass}`, { continued: false });
+
+//       const passedCount = subjects.filter(s => PASSING_GRADES.has(String(s.Grade).toUpperCase())).length;
+//       const passedColor = passedCount < 4 ? "red" : "green";
+//       doc.font("Times-Bold").fillColor(passedColor).text(`Subjects Passed: ${passedCount} / ${subjects.length}`, startX + (usableWidth * 2) / 3 + 8, doc.y - 10, { continued: false });
+//       doc.restore();
+
+//       doc.y = doc.y + infoBoxH + 8;
+
+//       // table columns
+//       const colSubject = Math.floor(usableWidth * 0.52);
+//       const colCode = Math.floor(usableWidth * 0.16);
+//       const colMark = Math.floor(usableWidth * 0.16);
+//       const colGrade = usableWidth - colSubject - colCode - colMark;
+//       const rowH = 20;
+
+//       // table header
+//       const yTopHdr = doc.y;
+//       doc.save();
+//       doc.rect(startX, yTopHdr, usableWidth, rowH).fillAndStroke("#005566", "#000");
+//       doc.fillColor("#fff").font("Times-Bold").fontSize(10);
+//       drawTextFit(doc, "Subject", startX + 6, yTopHdr + 4, colSubject - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "left" });
+//       drawTextFit(doc, "Code", startX + colSubject + 6, yTopHdr + 4, colCode - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
+//       drawTextFit(doc, "Mark", startX + colSubject + colCode + 6, yTopHdr + 4, colMark - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
+//       drawTextFit(doc, "Grade", startX + colSubject + colCode + colMark + 6, yTopHdr + 4, colGrade - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
+//       // stroke columns borders
+//       doc.rect(startX, yTopHdr, colSubject, rowH).stroke();
+//       doc.rect(startX + colSubject, yTopHdr, colCode, rowH).stroke();
+//       doc.rect(startX + colSubject + colCode, yTopHdr, colMark, rowH).stroke();
+//       doc.rect(startX + colSubject + colCode + colMark, yTopHdr, colGrade, rowH).stroke();
+//       doc.restore();
+
+//       doc.y = yTopHdr + rowH;
+
+//       // rows
+//       for (let i = 0; i < subjects.length; i++) {
+//         ensureSpace(doc, rowH + 8, () => drawHeaderForSlip());
+
+//         const yTop = doc.y;
+//         if (i % 2 === 1) {
+//           doc.rect(startX, yTop, usableWidth, rowH).fill("#f8f9fd");
+//         }
+
+//         const row = subjects[i];
+//         drawTextFit(doc, row.Subject || "-", startX + 6, yTop + 5, colSubject - 8, { baseSize: 10, minSize: 7, font: "Times-Roman", align: "left" });
+//         drawTextFit(doc, row.Subject_Code || "-", startX + colSubject + 6, yTop + 5, colCode - 8, { baseSize: 10, minSize: 7, font: "Times-Roman", align: "center" });
+//         drawTextFit(doc, row.Mark || "-", startX + colSubject + colCode + 6, yTop + 5, colMark - 8, { baseSize: 10, minSize: 7, font: "Times-Roman", align: "center" });
+
+//         const isPass = PASSING_GRADES.has(String(row.Grade).toUpperCase());
+//         doc.fillColor(isPass ? "green" : "red").font("Times-Bold");
+//         drawTextFit(doc, row.Grade || "-", startX + colSubject + colCode + colMark + 6, yTop + 5, colGrade - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
+//         doc.fillColor("#000");
+
+//         // stroke cell borders
+//         doc.rect(startX, yTop, colSubject, rowH).stroke();
+//         doc.rect(startX + colSubject, yTop, colCode, rowH).stroke();
+//         doc.rect(startX + colSubject + colCode, yTop, colMark, rowH).stroke();
+//         doc.rect(startX + colSubject + colCode + colMark, yTop, colGrade, rowH).stroke();
+
+//         doc.y = yTop + rowH;
+//       }
+
+//       // page footer for this slip
+//       const footerY = pageHeight - doc.page.margins.bottom - 30;
+//       doc.font("Times-Roman").fontSize(9).fillColor("#444");
+//       doc.text(`Issued by ${SCHOOL_NAME}`, doc.page.margins.left, footerY, { align: "left" });
+
+//       drawWatermark(doc, "MANFESS MOCK SLIP", pageWidth, pageHeight);
+//       // next student will addPage() above
+//     }
+
+//     doc.end();
+//   } catch (err) {
+//     console.error("print-slips PDF error:", err);
+//     return res.status(500).send("Error generating slips");
+//   }
+// });
 router.get("/print-slips", async (req, res) => {
   try {
-    const [students] = await db.query("SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname");
+    const [students] = await db.query(
+      "SELECT DISTINCT studentname, Class FROM mock_results_olevel ORDER BY studentname"
+    );
     if (!students.length) return res.status(404).send("No students found.");
 
-    const [allResults] = await db.query("SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject");
+    const [allResults] = await db.query(
+      "SELECT studentname, Subject, Subject_Code, Mark, Grade FROM mock_results_olevel ORDER BY studentname, Subject"
+    );
 
-    // Group by studentname
+    // Group by student
     const resultsByStudent = {};
     allResults.forEach((r) => {
       const name = safeString(r.studentname);
@@ -374,7 +519,10 @@ router.get("/print-slips", async (req, res) => {
     });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=MANFESS_OLEVEL_SLIP_2025/2026.pdf");
+    res.setHeader(
+      "Content-Disposition",
+      "inline; filename=MANFESS_OLEVEL_SLIP_2025_2026.pdf"
+    );
     doc.pipe(res);
 
     doc.addPage();
@@ -382,11 +530,17 @@ router.get("/print-slips", async (req, res) => {
 
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    const usableWidth = pageWidth - doc.page.margins.left - doc.page.margins.right;
+    const usableWidth =
+      pageWidth - doc.page.margins.left - doc.page.margins.right;
     const startX = doc.page.margins.left;
 
     function drawHeaderForSlip() {
-      return drawHeaderContents(doc, { x: startX, y: doc.page.margins.top, width: usableWidth, sequence: "" });
+      return drawHeaderContents(doc, {
+        x: startX,
+        y: doc.page.margins.top,
+        width: usableWidth,
+        sequence: "",
+      });
     }
 
     let first = true;
@@ -405,16 +559,25 @@ router.get("/print-slips", async (req, res) => {
       const infoBoxH = 52;
       doc.save();
       doc.rect(startX, doc.y, usableWidth, infoBoxH).fillAndStroke("#f8f9fd", "#ddd");
+
       doc.fillColor("#003f3f").font("Times-Bold").fontSize(10);
       doc.text("Student Name:", startX + 8, doc.y + 15, { continued: true });
-      doc.font("Times-Roman").text(` ${name}`, { continued: false });
+      doc.font("Times-Roman").text(` ${name}`);
 
       doc.font("Times-Bold").text("Class:", startX + usableWidth / 3 + 8, doc.y - 10, { continued: true });
-      doc.font("Times-Roman").text(` ${studentClass}`, { continued: false });
+      doc.font("Times-Roman").text(` ${studentClass}`);
 
-      const passedCount = subjects.filter(s => PASSING_GRADES.has(String(s.Grade).toUpperCase())).length;
+      const passedCount = subjects.filter((s) =>
+        PASSING_GRADES.has(String(s.Grade).toUpperCase())
+      ).length;
       const passedColor = passedCount < 4 ? "red" : "green";
-      doc.font("Times-Bold").fillColor(passedColor).text(`Subjects Passed: ${passedCount} / ${subjects.length}`, startX + (usableWidth * 2) / 3 + 8, doc.y - 10, { continued: false });
+      doc.font("Times-Bold")
+        .fillColor(passedColor)
+        .text(
+          `Subjects Passed: ${passedCount} / ${subjects.length}`,
+          startX + (usableWidth * 2) / 3 + 8,
+          doc.y - 10
+        );
       doc.restore();
 
       doc.y = doc.y + infoBoxH + 8;
@@ -431,11 +594,44 @@ router.get("/print-slips", async (req, res) => {
       doc.save();
       doc.rect(startX, yTopHdr, usableWidth, rowH).fillAndStroke("#005566", "#000");
       doc.fillColor("#fff").font("Times-Bold").fontSize(10);
-      drawTextFit(doc, "Subject", startX + 6, yTopHdr + 4, colSubject - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "left" });
-      drawTextFit(doc, "Code", startX + colSubject + 6, yTopHdr + 4, colCode - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
-      drawTextFit(doc, "Mark", startX + colSubject + colCode + 6, yTopHdr + 4, colMark - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
-      drawTextFit(doc, "Grade", startX + colSubject + colCode + colMark + 6, yTopHdr + 4, colGrade - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
-      // stroke columns borders
+      drawTextFit(doc, "Subject", startX + 6, yTopHdr + 4, colSubject - 8, {
+        baseSize: 10,
+        minSize: 7,
+        font: "Times-Bold",
+        align: "left",
+      });
+      drawTextFit(doc, "Code", startX + colSubject + 6, yTopHdr + 4, colCode - 8, {
+        baseSize: 10,
+        minSize: 7,
+        font: "Times-Bold",
+        align: "center",
+      });
+      drawTextFit(
+        doc,
+        "Mark",
+        startX + colSubject + colCode + 6,
+        yTopHdr + 4,
+        colMark - 8,
+        {
+          baseSize: 10,
+          minSize: 7,
+          font: "Times-Bold",
+          align: "center",
+        }
+      );
+      drawTextFit(
+        doc,
+        "Grade",
+        startX + colSubject + colCode + colMark + 6,
+        yTopHdr + 4,
+        colGrade - 8,
+        {
+          baseSize: 10,
+          minSize: 7,
+          font: "Times-Bold",
+          align: "center",
+        }
+      );
       doc.rect(startX, yTopHdr, colSubject, rowH).stroke();
       doc.rect(startX + colSubject, yTopHdr, colCode, rowH).stroke();
       doc.rect(startX + colSubject + colCode, yTopHdr, colMark, rowH).stroke();
@@ -454,14 +650,50 @@ router.get("/print-slips", async (req, res) => {
         }
 
         const row = subjects[i];
-        drawTextFit(doc, row.Subject || "-", startX + 6, yTop + 5, colSubject - 8, { baseSize: 10, minSize: 7, font: "Times-Roman", align: "left" });
-        drawTextFit(doc, row.Subject_Code || "-", startX + colSubject + 6, yTop + 5, colCode - 8, { baseSize: 10, minSize: 7, font: "Times-Roman", align: "center" });
-        drawTextFit(doc, row.Mark || "-", startX + colSubject + colCode + 6, yTop + 5, colMark - 8, { baseSize: 10, minSize: 7, font: "Times-Roman", align: "center" });
 
+        // ✅ Reset to black before each column except Grade
+        doc.fillColor("#000").font("Times-Roman");
+        drawTextFit(doc, row.Subject || "-", startX + 6, yTop + 5, colSubject - 8, {
+          baseSize: 10,
+          minSize: 7,
+          font: "Times-Roman",
+          align: "left",
+        });
+
+        doc.fillColor("#000").font("Times-Roman");
+        drawTextFit(
+          doc,
+          row.Subject_Code || "-",
+          startX + colSubject + 6,
+          yTop + 5,
+          colCode - 8,
+          { baseSize: 10, minSize: 7, font: "Times-Roman", align: "center" }
+        );
+
+        doc.fillColor("#000").font("Times-Roman");
+        drawTextFit(
+          doc,
+          row.Mark || "-",
+          startX + colSubject + colCode + 6,
+          yTop + 5,
+          colMark - 8,
+          { baseSize: 10, minSize: 7, font: "Times-Roman", align: "center" }
+        );
+
+        // ✅ Grade with color
         const isPass = PASSING_GRADES.has(String(row.Grade).toUpperCase());
         doc.fillColor(isPass ? "green" : "red").font("Times-Bold");
-        drawTextFit(doc, row.Grade || "-", startX + colSubject + colCode + colMark + 6, yTop + 5, colGrade - 8, { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" });
-        doc.fillColor("#000");
+        drawTextFit(
+          doc,
+          row.Grade || "-",
+          startX + colSubject + colCode + colMark + 6,
+          yTop + 5,
+          colGrade - 8,
+          { baseSize: 10, minSize: 7, font: "Times-Bold", align: "center" }
+        );
+
+        // reset back to black after grade
+        doc.fillColor("#000").font("Times-Roman");
 
         // stroke cell borders
         doc.rect(startX, yTop, colSubject, rowH).stroke();
@@ -472,13 +704,14 @@ router.get("/print-slips", async (req, res) => {
         doc.y = yTop + rowH;
       }
 
-      // page footer for this slip
+      // footer
       const footerY = pageHeight - doc.page.margins.bottom - 30;
       doc.font("Times-Roman").fontSize(9).fillColor("#444");
-      doc.text(`Issued by ${SCHOOL_NAME}`, doc.page.margins.left, footerY, { align: "left" });
+      doc.text(`Issued by ${SCHOOL_NAME}`, doc.page.margins.left, footerY, {
+        align: "left",
+      });
 
       drawWatermark(doc, "MANFESS MOCK SLIP", pageWidth, pageHeight);
-      // next student will addPage() above
     }
 
     doc.end();
