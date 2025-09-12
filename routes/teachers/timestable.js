@@ -9,11 +9,12 @@ router.post("/add", async (req, res) => {
   try {
     const { 
       Day, 
-      "04:30-05:20": slot1, 
-      "05:20-06:10": slot2, 
-      "06:10-07:00": slot3, 
-      "07:00-07-50": slot4, 
-      "07-50-09-00": slot5, 
+      "04:30-05:15": slot1, 
+      "05:15-06:00": slot2, 
+      "06:00-06:45": slot3, 
+      "06:45-07:30": slot4, 
+      "07:30-08:15": slot5, 
+      "08:15-09:00": slot6,
       Teachers 
     } = req.body;
 
@@ -31,11 +32,12 @@ router.post("/add", async (req, res) => {
       // Step 2: Update if exists
       const sqlUpdate = `
         UPDATE teachers_timestable 
-        SET \`04:30-05:20\`=?, 
-            \`05:20-06:10\`=?, 
-            \`06:10-07:00\`=?, 
-            \`07:00-07-50\`=?, 
-            \`07-50-09-00\`=? 
+        SET \`04:30-05:15\`=?, 
+            \`05:15-06:00\`=?, 
+            \`06:00-06:45\`=?, 
+            \`06:45-07:30\`=?, 
+            \`07:30-08:15\`=?, 
+            \`08:15-09:00\`=? 
         WHERE Day=? AND Teachers=?;
       `;
 
@@ -45,6 +47,7 @@ router.post("/add", async (req, res) => {
         slot3 || null,
         slot4 || null,
         slot5 || null,
+        slot6 || null,
         Day,
         Teachers
       ]);
@@ -54,8 +57,8 @@ router.post("/add", async (req, res) => {
       // Step 3: Insert if not exists
       const sqlInsert = `
         INSERT INTO teachers_timestable
-        (Day, \`04:30-05:20\`, \`05:20-06:10\`, \`06:10-07:00\`, \`07:00-07-50\`, \`07-50-09-00\`, Teachers)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (Day, \`04:30-05:15\`, \`05:15-06:00\`, \`06:00-06:45\`, \`06:45-07:30\`, \`07:30-08:15\`, \`08:15-09:00\`, Teachers)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const [result] = await db.query(sqlInsert, [
@@ -65,6 +68,7 @@ router.post("/add", async (req, res) => {
         slot3 || null,
         slot4 || null,
         slot5 || null,
+        slot6 || null,
         Teachers
       ]);
 
