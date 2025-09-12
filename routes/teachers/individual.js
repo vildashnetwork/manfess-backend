@@ -71,75 +71,96 @@ router.get("/download/:teacherName", async (req, res) => {
     doc.moveDown(1.2);
 
     // Table setup
-    const tableTop = doc.y;
+    const startX = 40;
+    let y = doc.y;
     const cellHeight = 35;
     const dayColWidth = 100;
     const slotColWidth = 110;
+    const totalWidth = dayColWidth + TIME_SLOTS.length * slotColWidth;
 
     // Draw header background
-    doc.rect(40, tableTop, dayColWidth + TIME_SLOTS.length * slotColWidth, cellHeight)
-      .fill(theme.headerBg);
+    doc
+      .rect(startX, y, totalWidth, cellHeight)
+      .fill(theme.headerBg)
+      .stroke();
 
-    // Header row
+    // Header text
     doc
       .fontSize(12)
       .fillColor(theme.text)
-      .text("Day", 45, tableTop + 10, {
+      .text("Day", startX + 5, y + 10, {
         width: dayColWidth - 10,
         align: "left",
       });
 
     TIME_SLOTS.forEach((slot, i) => {
-      doc.text(slot, 40 + dayColWidth + i * slotColWidth, tableTop + 10, {
+      doc.text(slot, startX + dayColWidth + i * slotColWidth, y + 10, {
         width: slotColWidth,
         align: "center",
       });
     });
 
-    // Draw header border
+    // Draw header grid lines
     doc
-      .rect(40, tableTop, dayColWidth + TIME_SLOTS.length * slotColWidth, cellHeight)
+      .rect(startX, y, totalWidth, cellHeight)
       .strokeColor(theme.border)
       .lineWidth(1)
       .stroke();
 
     // Table rows
-    let y = tableTop + cellHeight;
+    y += cellHeight;
     rows.forEach((row) => {
+      // Draw row background (optional zebra stripes for better UX)
+      if (rows.indexOf(row) % 2 === 0) {
+        doc.rect(startX, y, totalWidth, cellHeight).fill("#f9fafb").stroke();
+      }
+
+      // Reset fill for text
+      doc.fillColor(theme.secondary).fontSize(11);
+
       // Day cell
-      doc
-        .fontSize(11)
-        .fillColor(theme.secondary)
-        .text(row.Day, 45, y + 10, {
-          width: dayColWidth - 10,
-          align: "left",
-        });
+      doc.text(row.Day, startX + 5, y + 10, {
+        width: dayColWidth - 10,
+        align: "left",
+      });
 
       // Time slots
       TIME_SLOTS.forEach((slot, i) => {
         const val = safeString(row[slot]) || "—";
         doc
           .fillColor(val === "—" ? theme.gray : theme.text)
-          .text(val, 40 + dayColWidth + i * slotColWidth, y + 10, {
+          .text(val, startX + dayColWidth + i * slotColWidth, y + 10, {
             width: slotColWidth,
             align: "center",
           });
       });
 
-      // Row border
+      // Draw row grid
       doc
-        .rect(40, y, dayColWidth + TIME_SLOTS.length * slotColWidth, cellHeight)
+        .rect(startX, y, totalWidth, cellHeight)
         .strokeColor(theme.border)
-        .lineWidth(0.7)
+        .lineWidth(0.5)
         .stroke();
 
       y += cellHeight;
 
+      // Page break handling
       if (y > 500) {
         doc.addPage({ size: "A4", layout: "landscape" });
         y = 50;
       }
     });
+
+    // Vertical column lines for a perfect grid
+    let colX = startX;
+    doc.moveTo(colX, tableTop).lineTo(colX, y).strokeColor(theme.border).stroke();
+    colX += dayColWidth;
+    TIME_SLOTS.forEach(() => {
+      doc.moveTo(colX, tableTop).lineTo(colX, y).strokeColor(theme.border).stroke();
+      colX += slotColWidth;
+    });
+    // Final right border
+    doc.moveTo(startX + totalWidth, tableTop).lineTo(startX + totalWidth, y).stroke();
 
     // Footer
     doc.moveDown(2);
