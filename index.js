@@ -25,6 +25,7 @@ import printolevelmock from "./routes/students//printout/Olevelmock.js";
 import printpremockolevel from "./routes/students/printout/premockolevel.js";
 import printmockalevel from "./routes/students/printout/mockalevel.js"
 import printpremockalevel from "./routes/students/printout/premockalevel.js";
+import individual from "./routes/teachers/individual.js"
 dotenv.config();
 
 const app = express();
@@ -33,6 +34,7 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
+app.use("/", individual)
 app.use("/api/students/print/alevelpremock", printpremockalevel)
 app.use("/api/students/print/mockalevel", printmockalevel)
 app.use("/api/students/print/premockolevel", printpremockolevel)
