@@ -9,7 +9,7 @@ const router = express.Router();
 const safeString = (val) =>
   val === null || val === undefined ? "" : String(val).trim();
 
-// Modern theme
+// Theme
 const theme = {
   primary: "#16a34a",
   secondary: "#065f46",
@@ -39,7 +39,6 @@ router.get("/download/:teacherName", async (req, res) => {
       "SELECT * FROM teachers_timestable WHERE Teachers = ? ORDER BY Day",
       [teacherName]
     );
-
     if (!rows.length)
       return res.status(404).send("No timetable found for this teacher.");
 
@@ -61,13 +60,11 @@ router.get("/download/:teacherName", async (req, res) => {
     doc.fontSize(24).fillColor(theme.primary).text("Teacher Timetable", {
       align: "center",
     });
-
     doc
       .moveDown(0.3)
       .fontSize(16)
       .fillColor(theme.secondary)
       .text(teacherName, { align: "center" });
-
     doc.moveDown(1.2);
 
     // Table setup
@@ -78,7 +75,10 @@ router.get("/download/:teacherName", async (req, res) => {
     const slotColWidth = 110;
     const totalWidth = dayColWidth + TIME_SLOTS.length * slotColWidth;
 
-    // Draw header background
+    // Save table top position (for vertical grid lines later)
+    const tableTop = y;
+
+    // Header background
     doc
       .rect(startX, y, totalWidth, cellHeight)
       .fill(theme.headerBg)
@@ -100,22 +100,21 @@ router.get("/download/:teacherName", async (req, res) => {
       });
     });
 
-    // Draw header grid lines
+    // Header border
     doc
       .rect(startX, y, totalWidth, cellHeight)
       .strokeColor(theme.border)
       .lineWidth(1)
       .stroke();
 
-    // Table rows
+    // Rows
     y += cellHeight;
-    rows.forEach((row) => {
-      // Draw row background (optional zebra stripes for better UX)
-      if (rows.indexOf(row) % 2 === 0) {
+    rows.forEach((row, rowIndex) => {
+      // Zebra striping
+      if (rowIndex % 2 === 0) {
         doc.rect(startX, y, totalWidth, cellHeight).fill("#f9fafb").stroke();
       }
 
-      // Reset fill for text
       doc.fillColor(theme.secondary).fontSize(11);
 
       // Day cell
@@ -135,7 +134,7 @@ router.get("/download/:teacherName", async (req, res) => {
           });
       });
 
-      // Draw row grid
+      // Row border
       doc
         .rect(startX, y, totalWidth, cellHeight)
         .strokeColor(theme.border)
@@ -144,22 +143,25 @@ router.get("/download/:teacherName", async (req, res) => {
 
       y += cellHeight;
 
-      // Page break handling
+      // Page break
       if (y > 500) {
         doc.addPage({ size: "A4", layout: "landscape" });
         y = 50;
       }
     });
 
-    // Vertical column lines for a perfect grid
+    // Draw vertical lines for full grid
     let colX = startX;
-    doc.moveTo(colX, tableTop).lineTo(colX, y).strokeColor(theme.border).stroke();
+    doc.strokeColor(theme.border).lineWidth(0.5);
+    doc.moveTo(colX, tableTop).lineTo(colX, y).stroke(); // left border
+
     colX += dayColWidth;
     TIME_SLOTS.forEach(() => {
-      doc.moveTo(colX, tableTop).lineTo(colX, y).strokeColor(theme.border).stroke();
+      doc.moveTo(colX, tableTop).lineTo(colX, y).stroke();
       colX += slotColWidth;
     });
-    // Final right border
+
+    // Right border
     doc.moveTo(startX + totalWidth, tableTop).lineTo(startX + totalWidth, y).stroke();
 
     // Footer
@@ -171,10 +173,13 @@ router.get("/download/:teacherName", async (req, res) => {
         align: "center",
       });
 
+    // Close PDF correctly
     doc.end();
   } catch (err) {
     console.error("PDF generation error:", err);
-    res.status(500).send("Failed to generate timetable PDF.");
+    if (!res.headersSent) {
+      res.status(500).send("Failed to generate timetable PDF.");
+    }
   }
 });
 
