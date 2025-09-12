@@ -1,22 +1,25 @@
 // routes/timetableDownload.js
 import express from "express";
 import PDFDocument from "pdfkit";
-import db from '../../middlewares/db.js';
+import db from "../../middlewares/db.js";
 
 const router = express.Router();
 
 // Utility: Safe string
-const safeString = (val) => (val === null || val === undefined ? "" : String(val).trim());
+const safeString = (val) =>
+  val === null || val === undefined ? "" : String(val).trim();
 
-// Modern green theme
+// Modern theme
 const theme = {
   primary: "#16a34a",
   secondary: "#065f46",
   text: "#111827",
-  lightGray: "#f3f4f6",
+  headerBg: "#e5f9ee",
+  border: "#16a34a",
+  gray: "#9ca3af",
 };
 
-// New time slots (make sure these match your DB column names)
+// Time slots
 const TIME_SLOTS = [
   "04:30-05:15",
   "05:15-06:00",
@@ -26,22 +29,27 @@ const TIME_SLOTS = [
   "08:15-09:00",
 ];
 
-// ================== ROUTE ==================
 router.get("/download/:teacherName", async (req, res) => {
   try {
     const teacherName = safeString(req.params.teacherName);
     if (!teacherName) return res.status(400).send("Teacher name required.");
 
-    // Query timetable for this teacher
+    // Fetch teacher timetable
     const [rows] = await db.query(
       "SELECT * FROM teachers_timestable WHERE Teachers = ? ORDER BY Day",
       [teacherName]
     );
 
-    if (!rows.length) return res.status(404).send("No timetable found for this teacher.");
+    if (!rows.length)
+      return res.status(404).send("No timetable found for this teacher.");
 
-    // Create PDF
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    // Create landscape PDF
+    const doc = new PDFDocument({
+      margin: 40,
+      size: "A4",
+      layout: "landscape",
+    });
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
@@ -50,54 +58,85 @@ router.get("/download/:teacherName", async (req, res) => {
     doc.pipe(res);
 
     // Title
-    doc
-      .fontSize(22)
-      .fillColor(theme.primary)
-      .text("Teacher Timetable", { align: "center" })
-      .moveDown(0.5);
+    doc.fontSize(24).fillColor(theme.primary).text("Teacher Timetable", {
+      align: "center",
+    });
 
     doc
+      .moveDown(0.3)
       .fontSize(16)
       .fillColor(theme.secondary)
-      .text(teacherName, { align: "center" })
-      .moveDown(1.5);
+      .text(teacherName, { align: "center" });
 
-    // Table header
-    const startX = doc.x;
-    let y = doc.y;
+    doc.moveDown(1.2);
 
+    // Table setup
+    const tableTop = doc.y;
+    const cellHeight = 35;
+    const dayColWidth = 100;
+    const slotColWidth = 110;
+
+    // Draw header background
+    doc.rect(40, tableTop, dayColWidth + TIME_SLOTS.length * slotColWidth, cellHeight)
+      .fill(theme.headerBg);
+
+    // Header row
     doc
       .fontSize(12)
       .fillColor(theme.text)
-      .text("Day", startX, y, { width: 80, bold: true });
+      .text("Day", 45, tableTop + 10, {
+        width: dayColWidth - 10,
+        align: "left",
+      });
 
     TIME_SLOTS.forEach((slot, i) => {
-      doc
-        .fillColor(theme.text)
-        .text(slot, startX + 90 + i * 75, y, { width: 75, align: "center" });
+      doc.text(slot, 40 + dayColWidth + i * slotColWidth, tableTop + 10, {
+        width: slotColWidth,
+        align: "center",
+      });
     });
 
-    y += 20;
-    doc.moveTo(startX, y).lineTo(550, y).strokeColor(theme.primary).stroke();
-    y += 10;
+    // Draw header border
+    doc
+      .rect(40, tableTop, dayColWidth + TIME_SLOTS.length * slotColWidth, cellHeight)
+      .strokeColor(theme.border)
+      .lineWidth(1)
+      .stroke();
 
     // Table rows
+    let y = tableTop + cellHeight;
     rows.forEach((row) => {
-      doc.fillColor(theme.secondary).fontSize(11).text(row.Day, startX, y, { width: 80 });
+      // Day cell
+      doc
+        .fontSize(11)
+        .fillColor(theme.secondary)
+        .text(row.Day, 45, y + 10, {
+          width: dayColWidth - 10,
+          align: "left",
+        });
 
+      // Time slots
       TIME_SLOTS.forEach((slot, i) => {
         const val = safeString(row[slot]) || "—";
         doc
-          .fillColor(val === "—" ? "#9ca3af" : theme.text)
-          .text(val, startX + 90 + i * 75, y, {
-            width: 75,
+          .fillColor(val === "—" ? theme.gray : theme.text)
+          .text(val, 40 + dayColWidth + i * slotColWidth, y + 10, {
+            width: slotColWidth,
             align: "center",
           });
       });
 
-      y += 20;
-      if (y > 750) {
-        doc.addPage();
+      // Row border
+      doc
+        .rect(40, y, dayColWidth + TIME_SLOTS.length * slotColWidth, cellHeight)
+        .strokeColor(theme.border)
+        .lineWidth(0.7)
+        .stroke();
+
+      y += cellHeight;
+
+      if (y > 500) {
+        doc.addPage({ size: "A4", layout: "landscape" });
         y = 50;
       }
     });
@@ -107,7 +146,9 @@ router.get("/download/:teacherName", async (req, res) => {
     doc
       .fontSize(10)
       .fillColor("#6b7280")
-      .text("Generated by Manfess Timetable System", { align: "center" });
+      .text("Generated by Manfess Timetable System © 2025", {
+        align: "center",
+      });
 
     doc.end();
   } catch (err) {
